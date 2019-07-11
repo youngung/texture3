@@ -1142,7 +1142,17 @@ class polefigure:
             self.gr = np.array(grains)
         elif type(filename)!=type(None):
             try:
-                self.gr = np.loadtxt(fname=filename,skiprows=4)
+                # self.gr = np.loadtxt(fname=filename,skiprows=4)
+
+                with open(filename,'r') as fo:
+                    lines=fo.readlines()
+                    ngr=int(lines[3].split()[1])
+                lines=lines[4:ngr+4]
+                gr=[]
+                for i in range(len(lines)):
+                    phi1,phi,phi2,wgt=map(float,lines[i].split()[:4])
+                    gr.append([phi1,phi,phi2,wgt])
+                self.gr=np.array(gr)
             except:
                 from . import read_tex
                 blocks=read_tex.read(filename)
@@ -2315,8 +2325,7 @@ class polefigure:
         x,y,z = self.bases[0,:], self.bases[1,:], self.bases[2,:]
         ## Very often, x/y/z are aligned with RD/TD/ND.
         ## Note that self.bases are referenced in the laboratory axes.
-
-
+x
     def pf_new(
             self,ifig=None,axs=None,
             poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
