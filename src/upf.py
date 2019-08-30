@@ -2325,7 +2325,7 @@ class polefigure:
         x,y,z = self.bases[0,:], self.bases[1,:], self.bases[2,:]
         ## Very often, x/y/z are aligned with RD/TD/ND.
         ## Note that self.bases are referenced in the laboratory axes.
-x
+
     def pf_new(
             self,ifig=None,axs=None,
             poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
