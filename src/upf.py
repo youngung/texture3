@@ -2331,7 +2331,7 @@ class polefigure:
             poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
             mode='line',
             dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
-            lev_norm_log=True,nlev=7,ilev=1,cmap='magma',
+            lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
             rot=0.,iline_khi80=False,transform=np.identity(3)):
         """
         New version of pf that will succeed upf.polefigure.pf
@@ -2352,6 +2352,8 @@ class polefigure:
             (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
         <dth>:
             (rotation angle: -180,+180)
+        <rot>:
+             in-plane rotatation (radian)
 
         <n_rim>:
              The number of 'central' rims to be *averaged*.
@@ -2397,6 +2399,8 @@ class polefigure:
         <ilev>
            level option: 0 commonly contour levels for all poles generated
                          1 individual levels applied for individual poles
+        <levels>
+           Default is None. One can define levels of the contours.
         <transform>
            transformation matrix applied to the entire polycrystal aggregate.
 
@@ -2405,7 +2409,8 @@ class polefigure:
         fig: matplotlib.figure.Figure
         """
         import MP.lib.mpl_lib
-
+        import matplotlib.cm
+        from matplotlib.colors import LogNorm
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
@@ -2425,7 +2430,6 @@ class polefigure:
         ##################################################
 
         nlev = nlev + 1 ##
-        from matplotlib.colors import LogNorm
         miller=poles[::]
 
         if type(cdim)!=type(None): self.cdim=cdim
@@ -2504,18 +2508,21 @@ class polefigure:
         plt.subplots_adjust(left=0,right=0.8)
 
         for i in range(len(poles)):
-            if lev_norm_log:
-                ## To prevent log (0) -> np.nan
-                ## hardwire minimum value
-                if mns[i]==0: mns[i] = 0.5
-                levels = np.logspace(
-                    np.log10(mns[i]),np.log10(mxs[i]),nlev)
-                norm = LogNorm()
+            if type(levels)==type(None):
+                if lev_norm_log:
+                    ## To prevent log (0) -> np.nan
+                    ## hardwire minimum value
+                    if mns[i]==0: mns[i] = 0.5
+                    levels = np.logspace(
+                        np.log10(mns[i]),np.log10(mxs[i]),nlev)
+                    norm = LogNorm()
+                else:
+                    levels = np.linspace(mns[i],mxs[i],nlev)
+                    norm = None
             else:
-                levels = np.linspace(mns[i],mxs[i],nlev)
                 norm = None
 
-            import matplotlib.cm
+
             cmap_mpl = matplotlib.cm.get_cmap(cmap)
             color_mapping = matplotlib.cm.ScalarMappable(
                 norm=norm,cmap=cmap_mpl)
