@@ -852,7 +852,7 @@ def __circle__(center=[0,0], r=1.):
     y = y + center[0]
     return x,y
 
-def deco_pf(ax,cnt,miller=[0,0,0],
+def deco_pf(ax,cnt=None,miller=[0,0,0],
             iopt=0,iskip_last=False,
             ix='1',iy='2',mode='line'):
     """
@@ -876,16 +876,16 @@ def deco_pf(ax,cnt,miller=[0,0,0],
     fact = 2.5
     # --
 
-    clev    = cnt._levels
-    tcolors = cnt.tcolors
-    if iskip_last: nlev = len(tcolors)-1
-    else:  nlev = len(tcolors)
+    if mode in ['fill','line']:
+        clev    = cnt._levels
+        tcolors = cnt.tcolors
 
-    # print 'len(tcolors):',len(tcolors)
-    # print 'nlev in deco_pf:',nlev
+        if iskip_last: nlev = len(tcolors)-1
+        else:  nlev = len(tcolors)
+
 
     if iopt==1: pass
-    elif iopt==0:
+    elif iopt==0 and mode in ['fill','line']:
         for i in range(nlev):
             cc = tcolors[i][0][0:3]
 
@@ -946,7 +946,7 @@ def projection(pole=None, agrain=None):
     pole = pole / np.sqrt(pole[0]**2 + pole[1]**2 + pole[2]**2)
     a,b,c = pole[0:3]
     ###  mid-plane projection (z=0)
-    if c==1:
+    if abs(c-1)<1e-8:
         # pole[0] = 0; pole[1]=0; pole[2] = 1
         X=0; Y=0
     else:
@@ -970,7 +970,7 @@ def invproj(x=None,y=None):
 
 def vect2sphe(pole):
     """
-    cartensian vector to spherical cooridnate system
+    cartesian vector to spherical cooridnate system
 
     Argument
     ========
@@ -1614,12 +1614,12 @@ class polefigure:
             r = np.sin(theta)/(1-np.cos(theta))  #tilting angle to radius
             R, PHI = np.meshgrid(r,phi)          #meshing radius and rotation angle
             PHI = PHI + pi/2. # rotation the pole figure up.
-            x = R*np.cos(PHI); y = R*np.sin(PHI) #convert the polar coord-> cartensian
+            x = R*np.cos(PHI); y = R*np.sin(PHI) #convert the polar coord-> cartesian
 
             ## somehow, I did not recognize that there is an intrinsic
             ## polar projection option in subplot. Therefore, at the time
             ## this defunc was made, I did transform them into the
-            ## cartensian coordinate system above. Now I am wishing to
+            ## cartesian coordinate system above. Now I am wishing to
             ## make use of it, over excursion of pixel view of the
             ## binning of pole figures. That is mode=='im'.
             ## I do not like this lousy name again.
@@ -1913,7 +1913,7 @@ class polefigure:
 
         It is the engine for plotting regular and inverse
         pole figures by generating projected
-        cartensian coordinates for the 3D vectors
+        cartesian coordinates for the 3D vectors
         onto the pole figure sphere (stereographic sphere).
         One can directly plot pole figure on a xy plane.
 
@@ -2332,7 +2332,7 @@ class polefigure:
             mode='line',
             dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
             lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.identity(3)):
+            rot=0.,iline_khi80=False,transform=np.identity(3),**kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
         Note that upf.polefigure.pf is deprecated and will be deleted soon.
@@ -2395,7 +2395,7 @@ class polefigure:
            pole figure plot. - I usually obtain incomplete pole figure
            upto a tilting <chi> of 80.
         <mode>
-           Contour model: 'line' or 'fill'
+           Contour model: 'line' or 'fill' or 'dot'
         <ilev>
            level option: 0 commonly contour levels for all poles generated
                          1 individual levels applied for individual poles
@@ -2449,53 +2449,98 @@ class polefigure:
         tiny = 1.e-9
         N=[]
         t0=time.time()
-        # is_joblib=False ## Debug
-        if is_joblib and len(poles)>1:
-            rst=Parallel(n_jobs=len(poles)) (
-                delayed(cells_pf)(
-                    pole_ca=poles[i],dth=dth,dph=dph,
-                    csym=self.csym,cang=self.cang,cdim=self.cdim,
-                    grains=self.gr,n_rim = n_rim,transform=transform) \
-                for i in range(len(poles)))
-            for i in range(len(rst)):
-                N.append(rst[i])
+
+        if mode in ['line','contour']:
+            if is_joblib and len(poles)>1:
+                rst=Parallel(n_jobs=len(poles)) (
+                    delayed(cells_pf)(
+                        pole_ca=poles[i],dth=dth,dph=dph,
+                        csym=self.csym,cang=self.cang,cdim=self.cdim,
+                        grains=self.gr,n_rim = n_rim,transform=transform) \
+                    for i in range(len(poles)))
+                for i in range(len(rst)):
+                    N.append(rst[i])
+            else:
+                for i in range(len(poles)):
+                    N.append(cells_pf(
+                        pole_ca=poles[i],dth=dth,dph=dph,
+                        csym=self.csym,cang=self.cang,
+                        cdim=self.cdim,grains=self.gr,
+                        n_rim = n_rim,transform=transform))
+
+            et = time.time()-t0
+            uet(et,head='Elapsed time for calling cells_pf')
+
+            x_node = np.arange(-180.,180.+tiny,dth)
+            y_node = np.arange(   0., 90.+tiny,dph)
+            XN, YN = np.meshgrid(x_node,y_node)
+
+            #--------------------------------------------------#
+            ## plotting / resolution
+            nm     = int((360.0 - 0.)/dth)
+            nn     = int((180. - 90.)/dph)
+            theta  = np.linspace(pi, pi/2., nn+1)
+            phi    = np.linspace(0., 2.*pi, nm+1)
+            r      = np.sin(theta)/(1-np.cos(theta))
+            R, PHI = np.meshgrid(r,phi)
+            PHI    = PHI + rot ## default: rot=0.
+            x      = R*np.cos(PHI); y = R*np.sin(PHI)
+
+            nArray=np.array(N)
+            xyCoords=np.array([x,y])
+            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
+
+        elif mode in ['dot']:
+
+            pf_dots=[]
+            for ip in range(len(poles)):
+                P=[]
+                ## multiple crystal poles after reflecting crystal symmetries
+                p0 = __equiv__(miller=poles[ip],csym=self.csym,
+                               cdim=self.cdim,cang=self.cang)
+
+                P=np.zeros((len(p0)*2,3))
+                P[:len(p0),:]= p0[:,:]
+                P[len(p0):,:]=-p0[:,:]
+                poles_ca=P/np.sqrt(P**2).sum()
+
+
+                poles_sa  = np.zeros((len(self.gr),len(poles_ca),3))
+
+                for i in range(len(self.gr)):
+                    phi1,phi,phi2,wgt = self.gr[i]
+                    amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+                    amat=amat.T ## sa<-ca
+
+                    if (transform==np.identity(3)).all():
+                        pass
+                    else:
+                        amat=np.dot(transform,amat)
+
+                    for j in range(len(poles_ca)):
+                        poles_sa[i,j,:]=np.dot(amat,poles_ca[j])
+
+                poles_sa  = poles_sa.reshape( (len(self.gr)*len(poles_ca),3))
+
+                XY=[]
+                for i in range(len(poles_sa)):
+                    x,y=projection(pole=poles_sa[i])
+
+                    if x**2+y**2<=1.:
+                        ## a work around to switch to the opposite hemisphere
+                        y=-y
+                        x=-x
+                        XY.append([x,y])
+                pf_dots.append(np.array(XY))
+
+            pf_dots=np.array(pf_dots)
+            et = time.time()-t0
+            uet(et,head='Elapsed time for calculting dots')
+            # return pf_dots
+            # raise IOError('check')
         else:
-            for i in range(len(poles)):
-                N.append(cells_pf(
-                    pole_ca=poles[i],dth=dth,dph=dph,
-                    csym=self.csym,cang=self.cang,
-                    cdim=self.cdim,grains=self.gr,
-                    n_rim = n_rim,transform=transform))
+            raise IOError('Unexpected mode given to pf_new')
 
-        et = time.time()-t0
-        uet(et,head='Elapsed time for calling cells_pf')
-        print()
-
-        x_node = np.arange(-180.,180.+tiny,dth)
-        y_node = np.arange(   0., 90.+tiny,dph)
-        XN, YN = np.meshgrid(x_node,y_node)
-
-        #--------------------------------------------------#
-        ## plotting / resolution
-        nm     = int((360.0 - 0.)/dth)
-        nn     = int((180. - 90.)/dph)
-        theta  = np.linspace(pi, pi/2., nn+1)
-        phi    = np.linspace(0., 2.*pi, nm+1)
-        r      = np.sin(theta)/(1-np.cos(theta))
-        R, PHI = np.meshgrid(r,phi)
-        PHI    = PHI + rot ## default: rot=0.
-        x      = R*np.cos(PHI); y = R*np.sin(PHI)
-
-        nArray=np.array(N)
-        xyCoords=np.array([x,y])
-
-        # print 'nArray.shape:',nArray.shape
-
-        mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
-
-        # ## normalized color map
-        # mpl_cmap, cm_func, cm_norm = MP.lib.mpl_lib.norm_cmap(
-        #     mx=mx,mn=mn,cm_name=cmap,inorm=True)
 
         if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
         else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
@@ -2505,64 +2550,72 @@ class polefigure:
         for i in range(len(poles)):
             _ax_ = fig.add_subplot(1,len(poles),i+1)
             axs.append(_ax_)
+
         plt.subplots_adjust(left=0,right=0.8)
 
         for i in range(len(poles)):
-            if type(levels)==type(None):
-                if lev_norm_log:
-                    ## To prevent log (0) -> np.nan
-                    ## hardwire minimum value
-                    if mns[i]==0: mns[i] = 0.5
-                    levels = np.logspace(
-                        np.log10(mns[i]),np.log10(mxs[i]),nlev)
-                    norm = LogNorm()
+
+            if mode in ['line','contour']:
+                if type(levels)==type(None):
+                    if lev_norm_log:
+                        ## To prevent log (0) -> np.nan
+                        ## hardwire minimum value
+                        if mns[i]==0: mns[i] = 0.5
+                        levels = np.logspace(
+                            np.log10(mns[i]),np.log10(mxs[i]),nlev)
+                        norm = LogNorm()
+                    else:
+                        levels = np.linspace(mns[i],mxs[i],nlev)
+                        norm = None
                 else:
-                    levels = np.linspace(mns[i],mxs[i],nlev)
                     norm = None
-            else:
-                norm = None
 
+                cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                color_mapping = matplotlib.cm.ScalarMappable(
+                    norm=norm,cmap=cmap_mpl)
 
-            cmap_mpl = matplotlib.cm.get_cmap(cmap)
-            color_mapping = matplotlib.cm.ScalarMappable(
-                norm=norm,cmap=cmap_mpl)
+                if   mode=='line': func = axs[i].contour
+                elif mode=='fill': func = axs[i].contourf
 
-            if   mode=='line': func = axs[i].contour
-            elif mode=='fill': func = axs[i].contourf
+                ## contour plot
+                nArray[i][np.isnan(nArray[i])]=0.
+                nArray[i][nArray[i]<=0]=1e-4
+                cnts=func(x,y,nArray[i],levels=levels,
+                          cmap=cmap,norm=norm,zorder=10)
 
-            ## contour plot
-            nArray[i][np.isnan(nArray[i])]=0.
-            nArray[i][nArray[i]<=0]=1e-4
-            cnts=func(x,y,nArray[i],levels=levels,
-                      cmap=cmap,norm=norm,zorder=10)
+                ## x, y coordinates of maximum intensity in grid
+                i0,j0 = indices_mx[i]
+                mx_coord_x = x[i0,j0]
+                mx_coord_y = y[i0,j0]
 
-            ## x, y coordinates of maximum intensity in grid
-            i0,j0 = indices_mx[i]
-            mx_coord_x = x[i0,j0]
-            mx_coord_y = y[i0,j0]
+                if mode=='line':
+                    axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
+                                color=color_mapping.to_rgba(levels[-1]))
 
-            if mode=='line':
-                axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
-                            color=color_mapping.to_rgba(levels[-1]))
+                if ires:# and mode!='fill':
+                    xs=[];ys=[]
+                    filt = nArray[i,:,:]<levels[0]
+                    filt[0,1:]=False
+                    filt[1:,0]=False
+                    xs=x[filt]; ys=y[filt]
+                    if len(xs)>0:
+                        axs[i].plot(
+                            xs,ys,'k.',
+                            alpha=0.17*len(poles),
+                            markersize=2.0)
+                # if ires and mode=='fill': ## overlay the resolution
+                #     axs[i].plot(x,y,'k+',
+                #                 alpha=0.17*len(poles),
+                #                 markersize=2.0,zorder=100)
 
-            if ires:# and mode!='fill':
-                xs=[];ys=[]
-                filt = nArray[i,:,:]<levels[0]
-                filt[0,1:]=False
-                filt[1:,0]=False
-                xs=x[filt]; ys=y[filt]
-                if len(xs)>0:
-                    axs[i].plot(
-                        xs,ys,'k.',
-                        alpha=0.17*len(poles),
-                        markersize=2.0)
-            # if ires and mode=='fill': ## overlay the resolution
-            #     axs[i].plot(x,y,'k+',
-            #                 alpha=0.17*len(poles),
-            #                 markersize=2.0,zorder=100)
-
-            deco_pf(axs[i],cnts,miller[i],0,
-                    iskip_last=False,ix=ix,iy=iy,mode=mode)
+                deco_pf(axs[i],cnts,miller[i],0,
+                        iskip_last=False,ix=ix,iy=iy,mode=mode)
+            if mode in ['dot']:
+                x=pf_dots[i][:,0]
+                y=pf_dots[i][:,1]
+                axs[i].scatter(x,y,**kwargs)
+                deco_pf(axs[i],None,miller[i],0,
+                        iskip_last=False,ix=ix,iy=iy,mode=mode)
         return fig
         #--------------------------------------------------#
 
@@ -2823,7 +2876,7 @@ def cells_pf(
 
     #i_for=False # debug
     if i_for:
-        if (transform==np.identity).all():
+        if (transform==np.identity(3)).all():
             poles_sa, poles_wgt = gr2psa(
                 ngr=len(grains),grains=grains,
                 npol=len(poles_ca),poles_ca=poles_ca) #np.array(poles_ca))
@@ -2838,7 +2891,7 @@ def cells_pf(
             ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
             amat=amat.T ## sa<-ca
-            if (transform==np.identity).all():
+            if (transform==np.identity(3)).all():
                 pass
             else:
                 amat=np.dot(transform,amat)
