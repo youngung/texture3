@@ -138,12 +138,12 @@ try:
     i_for=True
 except:
     i_for=False
-    print('----------------------------------------------------')
+    # print('----------------------------------------------------')
     print('     pf_for_lib is not available in the system')
-    print('   pf_for_lib is a fortran binary that is loaded')
-    print('   in Python using f2py, which may be helpful to ')
-    print('         speed-up calculations in upf.py')
-    print('----------------------------------------------------')
+    # print('   pf_for_lib is a fortran binary that is loaded')
+    # print('   in Python using f2py, which may be helpful to ')
+    # print('         speed-up calculations in upf.py')
+    # print('----------------------------------------------------')
 
 try:
     import joblib
@@ -937,6 +937,9 @@ def projection(pole=None, agrain=None):
 
     pole = [1,1,1] or [1,1,0] something like this.
 
+    The stereographic projection uses vectors pointing at
+    southern hemisphere.
+
     Arguments
     ---------
     pole = None
@@ -951,6 +954,7 @@ def projection(pole=None, agrain=None):
         X=0; Y=0
     else:
         X = a/(c-1)
+
         Y = b/(c-1)
     return X,Y
 
@@ -2328,7 +2332,7 @@ class polefigure:
 
     def pf_new(
             self,ifig=None,axs=None,
-            poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
+            poles=[[1,0,0],[1,1,0]],ix='-1',iy='-2',
             mode='line',
             dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
             lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
@@ -2499,13 +2503,27 @@ class polefigure:
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
 
+                #print('equivalent poles in cartesian coords of crystal system')
+                #for k in range(len(p0)):
+                #    print(p0[k])
+
+                # Vectors pointing at two opposite directions
                 P=np.zeros((len(p0)*2,3))
                 P[:len(p0),:]= p0[:,:]
                 P[len(p0):,:]=-p0[:,:]
+
+                # print('doubling the poles considering the opposite of each')
+                #for k in range(len(P)):
+                #    print(P[k])
+
+                #
                 poles_ca=P/np.sqrt(P**2).sum()
 
+                # print('Normalized vectors corresponding to the equivalent poles')
+                #for k in range(len(poles_ca)):
+                #    print(poles_ca[k])
 
-                poles_sa  = np.zeros((len(self.gr),len(poles_ca),3))
+                poles_sa=np.zeros((len(self.gr),len(poles_ca),3))
 
                 for i in range(len(self.gr)):
                     phi1,phi,phi2,wgt = self.gr[i]
@@ -2525,9 +2543,10 @@ class polefigure:
                 XY=[]
                 for i in range(len(poles_sa)):
                     x,y=projection(pole=poles_sa[i])
+                    # print('(x,y):',x,y)
 
                     if x**2+y**2<=1.:
-                        ## a work around to switch to the opposite hemisphere
+                        ## a work-around to switch to the opposite hemisphere
                         y=-y
                         x=-x
                         XY.append([x,y])
@@ -3036,8 +3055,8 @@ def main(filename, pfmode, gr, csym):
       """
     if gr!=None: a = polefigure(grains=gr, csym=csym)
     else: a = polefigure(filename=filename, csym=csym)
-    a.pf(mode=pfmode)
-
+    #
+    a.pf_new(mode=pfmode)
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
