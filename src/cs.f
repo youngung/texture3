@@ -53,18 +53,20 @@ c                        v, vuniq, n     , icen   , prt
          call cubic_eqvect(n, nuniq, nnuniq, .false., .false.) ! plane
          if (verbose) then
             write(*,*) 'nnuniq', nnuniq
-            do 8 in=1,nnuniq
-            do 8 i=1,3
+            do in=1,nnuniq
+            do i=1,3
                write(*,'(3f7.3)') (nuniq(i,j),j=1,3)
- 8          continue
+            enddo
+         enddo
          endif
          call cubic_eqvect(b, buniq, nbuniq, .true. , .false.) ! direct
          if (verbose) then
             write(*,*) 'nbuniq', nbuniq
-            do 9 in=1, nbuniq
-            do 9 i=1,3
+            do  in=1, nbuniq
+            do  i=1,3
                write(*,'(3f7.3)') (nuniq(i,j),j=1,3)
- 9          continue
+            enddo
+            enddo
 c            read(*,*)
          endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -112,16 +114,16 @@ c     Finds possible sets of plane-normal and its characteristics
 c     direction. Note that the normality of suitable sets of them is
 c     based by logical function isnorm.
       inb = 0
-      do 1000 in=1, nnuniq    ! plane normal ends at the line # 1000
-         do 10 i=1,3
+      do in=1, nnuniq    ! plane normal ends at the line # 1000
+         do i=1,3
             dum01(i) = nuniq(i,in)
- 10      continue
+         enddo
 
       inbc = 0
-      do 500 ib=1, nbuniq    ! direction
-         do 20 i=1,3
+      do ib=1, nbuniq    ! direction
+         do i=1,3
             dum02(i) = buniq(i,ib) ! current direction
- 20      continue
+         enddo
          if (verbose) write(*, '(3f7.3, 3x, 3f7.3)') (dum01(i), i=1,3),
      $        (dum02(i), i=1,3)
          dum = 0.d0
@@ -133,13 +135,13 @@ c     based by logical function isnorm.
          if (isperpen(dum01, dum02, 3)) then
             inbc = inbc + 1     ! number of direction for this particular
 c                                 plane (in) increases.
-            do 30 i=1,3
+            do i=1,3
 c              Save those turned out to be on the plane dum01 to dum03.
 c              For latter use.
                dum03(i,inbc) = dum02(i)
- 30         continue
+            enddo
          endif
- 500  continue ! over ib. It is not the end of loop over plane in.
+      enddo                     ! over ib. It is not the end of loop over plane in.
 
 c     if (verbose) write(*,*) 'inbc after putting things into dum03: ',
 c$     inbc
@@ -176,13 +178,14 @@ c          read(*,*)
        endif
 c' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' c
 
-      do 600 j=1,ib ! direction
+      do j=1,ib ! direction
          inb = inb + 1
-      do 600 i=1,3
+      do i=1,3
          uniqset(i,1,inb) = dum01(i)
          uniqset(i,2,inb) = dum04(i,j)
- 600  continue                  ! over ib again.
- 1000 continue                  ! loop over n & b set.
+      enddo
+      enddo                     ! over ib again.
+      enddo                  ! loop over n & b set.
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
       if (verbose) then
          write(*,*) 'inb:', inb
@@ -217,10 +220,11 @@ cf2py intent(out) h, n
       write(*,*) 'Not tested yet for orthorhombic_rot_sym'
       stop
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          h(i,j,1) = h0(i,j)
- 10   continue
+      enddo
+      enddo
       call zmat(h0)
       call zvec(z)
       z(3) = 1.d0
@@ -230,42 +234,42 @@ cf2py intent(out) h, n
       call matrot(rz, hmirxz, hmiryz) ! rotate hmirxz into hmiryz
       n = 1
       iin = 0
-      do 20 in = 1, n
+      do in = 1, n
          call take33mat(h0, 48, in, h)
          call matply(h0, hz180, dum)
          iin = iin + 1
          call add33mat(dum, 48, n + iin, h)
- 20   continue
+      enddo
       n = n + iin
 
       iin = 0
-      do 30 in = 1, n
+      do in = 1, n
          call take33mat(h0, 48, in, h)
          call matply(h0, hmirxz, dum)
          iin = iin + 1
          call add33mat(dum, 48, n + iin, h)
- 30   continue
+      enddo
       n = n + iin
 
       iin = 0
-      do 40 in = 1, n
+      do in = 1, n
          call take33mat(h0, 48, in, h)
          call matply(h0, hmiryz, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 40   continue
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     centro-symmetry
       if (icen) then
          call central(hc)       ! centro-sym op.
          iin = 0
-         do 50 in = 1, n
+         do in = 1, n
             call take33mat(h0, 48, in, h)
             call matply(h0, hc, dum)
             iin = iin + 1
             call add33mat(dum, 48, n+iin, h)
- 50      continue
+         enddo
          n = n + iin
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -289,10 +293,11 @@ cf2py intent(out) h,n
       write(*,*) 'Not tested yet for monoclinic_rot_sym'
       stop
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          h(i,j,1) = h0(i,j)
- 10   continue
+      enddo
+      enddo
       call zmat(h0)
 
 c      write(*,*) 'not completed!'
@@ -304,24 +309,24 @@ c      stop
 
       n = 1
       iin = 0
-      do 20 in=1,n
+      do in=1,n
          call take33mat(h0, 48, in, h)
          call matply(h0, hz180, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 20   continue
+      enddo
       n = n + iin
 
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
       if (icen) then
          call central(hc)       ! centro-sym op.
          iin = 0
-         do 30 in = 1, n
+         do in = 1, n
             call take33mat(h0, 48, in, h)
             call matply(h0, hc, dum)
             iin = iin + 1
             call add33mat(dum, 48, n+iin, h)
- 30      continue
+         enddo
          n = n + iin
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -342,10 +347,11 @@ cf2py intent(out) h,n
       write(*,*) 'Not tested yet for triclinic_rot_sym'
       stop
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          h(i,j,1) = h0(i,j)
- 10   continue
+      enddo
+      enddo
       call zmat(h0)
       n = 1
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -382,10 +388,11 @@ cf2py intent(out) h, n
       write(*,*) 'Not tested yet for hexagonal_rot_sym'
       stop
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          h(i,j,1) = h0(i,j)
- 10   continue
+      enddo
+      enddo
       call zmat(h0)
 
 c     x and z unit vectors
@@ -405,40 +412,41 @@ c     rotate rxz by 180./6. degree about z
       call matrot(rz, rxz, hmirr)
       n = 1
       iin = 0
-      do 20 in=1,n
+      do in=1,n
          call take33mat(h0, 48, in, h)
          call matply(h0, hmirr, dum)
          iin = iin + 1
          call add33mat(dum, 48, n + iin, h)
- 20   continue
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     Add 6-fold symmetry
-      do 30 i=1,6
+      do i=1,6
          call vector_ang(z, 360.d0/6. * i, dum)
          call add33mat(dum, 6, i, r)
- 30   continue
+      enddo
       iin = 0
-      do 40 in=1,n
+      do in=1,n
          call take33mat(h0, 48, in, h)
-      do 40 i=1,6
+      do i=1,6
          call take33mat(r0, 6, i, r)
          call matply(h0, r0, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 40   continue
+      enddo
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     centro-symmetry
       if (icen) then
          call central(hc)       ! centro-sym op.
          iin = 0
-         do 50 in = 1, n
+         do in = 1, n
             call take33mat(h0, 48, in, h)
             call matply(h0, hc, dum)
             iin = iin + 1
             call add33mat(dum, 48, n+iin, h)
- 50      continue
+         enddo
          n = n + iin
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -458,10 +466,11 @@ c     identity tensor
       write(*,*) 'Not tested yet for tetragonal_rot_sym'
       stop
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
-            h(i,j,1) = h0(i,j)
- 10   continue
+      do i=1,3
+      do j=1,3
+         h(i,j,1) = h0(i,j)
+      enddo
+      enddo
       call zmat(h0)
 
 c     x and z unit vectors
@@ -479,42 +488,43 @@ c     rotate rxz by 180./6. degree about z
 
       n = 1
       iin = 0
-      do 20 in = 1,n
+      do in = 1,n
          call take33mat(h0, 48, in, h)
          call matply(h0, hmirr, dum)
          iin = iin + 1
          call add33mat(dum, 48, n + iin, h)
- 20   continue
+      enddo
       n = n + iin
 
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     Add 4-fold symmetry
-      do 30 i=1,4
+      do i=1,4
          call vector_ang(z, 360.d0/4. * i, dum)
          call add33mat(dum, 4, i, r)
- 30   continue
+      enddo
 
       iin = 0
-      do 40 in=1,n
+      do in=1,n
          call take33mat(h0, 48, in, h)
-      do 40 i=1,4
+      do i=1,4
          call take33mat(r0, 4, i, r)
          call matply(h0, r0, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 40   continue
+      enddo
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     centro-symmetry
       if (icen) then
          call central(hc)       ! centro-sym op.
          iin = 0
-         do 50 in = 1, n
+         do in = 1, n
             call take33mat(h0, 48, in, h)
             call matply(h0, hc, dum)
             iin = iin + 1
             call add33mat(dum, 48, n+iin, h)
- 50      continue
+         enddo
          n = n + iin
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -534,10 +544,11 @@ cf2py intent(out) h, n
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     identity tensor
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
-            h(i,j,1) = h0(i,j)
- 10   continue
+      do i=1,3
+      do j=1,3
+         h(i,j,1) = h0(i,j)
+      enddo
+      enddo
       call zmat(h0)
 
 c     x and z unit vectors
@@ -554,42 +565,43 @@ c     rotate rxz by 180./6. degree about z
       call matrot(rz, rxz, hmirr)
       n = 1
       iin = 0
-      do 20 in = 1,n
+      do in = 1,n
          call take33mat(h0, 48, in, h)
          call matply(h0, hmirr, dum)
          iin = iin + 1
          call add33mat(dum, 48, n + iin, h)
- 20   continue
+      enddo
       n = n + iin
 
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     Add 3-fold symmetry
-      do 30 i=1,3
+      do i=1,3
          call vector_ang(z, 360.d0/4. * i, dum)
          call add33mat(dum, 3, i, r)
- 30   continue
+      enddo
 
       iin = 0
-      do 40 in=1,n
+      do in=1,n
          call take33mat(h0, 48, in, h)
-      do 40 i=1,3
+      do i=1,3
          call take33mat(r0, 3, i, r)
          call matply(h0, r0, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 40   continue
+      enddo
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     centro-symmetry
       if (icen) then
          call central(hc)       ! centro-sym op.
          iin = 0
-         do 50 in = 1, n
+         do in = 1, n
             call take33mat(h0, 48, in, h)
             call matply(h0, hc, dum)
             iin = iin + 1
             call add33mat(dum, 48, n+iin, h)
- 50      continue
+         enddo
          n = n + iin
       endif
       return
@@ -621,12 +633,13 @@ c     Returns only orthogonal rotation matrices
          call zvec(aux5)
          call zvec(aux6)
 
-         do 100 i=1,3
-         do 100 j=1,3
+         do i=1,3
+         do j=1,3
             aux4(i) = aux4(i) + h(i,j,ivar) * aux1(j)
             aux5(i) = aux5(i) + h(i,j,ivar) * aux2(j)
             aux6(i) = aux6(i) + h(i,j,ivar) * aux3(j)
- 100     continue
+         enddo
+         enddo
 
          call vnorm(aux4, 3)
          call vnorm(aux5, 3)
@@ -641,10 +654,11 @@ c     Returns only orthogonal rotation matrices
          write(*,*) ivar
          if (isrotmat(aux33,3)) then
             nvar = nvar + 1
-            do 200 i=1,3
-            do 200j=1,3
+            do i=1,3
+            do j=1,3
                h(i,j,nvar) = aux33(i,j)
- 200        continue
+            enddo
+            enddo
          endif
       enddo
       return
@@ -674,12 +688,13 @@ c----------------------------------------------------------------------c
          call zvec(aux5)
          call zvec(aux6)
 
-         do 100 i=1,3
-         do 100 j=1,3
+         do i=1,3
+         do j=1,3
             aux4(i) = aux4(i) + h(i,j,ivar) * aux1(j)
             aux5(i) = aux5(i) + h(i,j,ivar) * aux2(j)
             aux6(i) = aux6(i) + h(i,j,ivar) * aux3(j)
- 100     continue
+         enddo
+         enddo
 
          call vnorm(aux4, 3)
          call vnorm(aux5, 3)
@@ -694,10 +709,11 @@ c----------------------------------------------------------------------c
          write(*,*) ivar
          if (isrotmat(aux33,3)) then
             nvar = nvar + 1
-            do 200 i=1,3
-            do 200j=1,3
+            do i=1,3
+            do j=1,3
                h(i,j,nvar) = aux33(i,j)
- 200        continue
+            enddo
+            enddo
          endif
       enddo
 
@@ -731,10 +747,11 @@ cf2py intent(out) h, n
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     identity tensor for the first symmetry element for h.
       call imat(h0)
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          h(i,j,1) = h0(i,j)
- 10   continue
+      enddo
+      enddo
       call zmat(h0)
       n = 1
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -742,7 +759,7 @@ c     Rotates 120 and 240 about [111] direction. 3 fold symmetry
 c      call rot111_60_120(h120, h240)
       call rot111_120_240(h120, h240)
       iin = 0
-      do 100 in=1, n
+      do in=1, n
          call take33mat(h0, 48, in, h)
          call matply(h0, h120, dum)
          iin = iin + 1
@@ -750,17 +767,17 @@ c      call rot111_60_120(h120, h240)
          call matply(h0, h240, dum)
          iin = iin + 1
          call add33mat(dum, 48, n+iin, h)
- 100  continue
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
       call mirror110(hmirror)
       iin = 0
-      do 200 in=1, n
+      do in=1, n
          call take33mat(h0, 48, in, h)
          iin = iin + 1
          call matply(h0, hmirror, dum)
          call add33mat(dum, 48, n+iin, h)
- 200  continue
+      enddo
       n = n + iin
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     rotations of 90, 180, 270 around x3
@@ -768,7 +785,7 @@ c      call rot100_90_180_270(h90, h180, h270)
       call rot100_90_180_270(hx90, hx180, hx270)
 c     $     hy90, hy180, hy270, hz90, hz180, hz270)
       iin = 0
-      do 300 in=1, n
+      do in=1, n
          call take33mat(h0, 48, in, h)
          iin = iin + 1
          call matply(h0, hx90, dum)
@@ -779,19 +796,19 @@ c     $     hy90, hy180, hy270, hz90, hz180, hz270)
          iin = iin + 1
          call matply(h0, hx270, dum)
          call add33mat(dum, 48, n+iin, h)
- 300  continue
+      enddo
       n = n + iin
 c----------------------------------------------------------------------c
 c     Central symmetry by the origin (0,0,0)
       if (icen) then
          call central(hc)
          iin = 0
-         do 400 in=1,n
+         do in=1,n
             call take33mat(h0, 48, in, h)
             iin = iin + 1
             call matply(h0, hc, dum)
             call add33mat(dum, 48, n+iin, h)
- 400     continue
+         enddo
          n = n + iin
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
@@ -836,14 +853,18 @@ c     rotation of 2*pi/6 around axis <001>
          hrot(2,1,nr) = dsin(ang)
       enddo
 
-      do 20 nr=1,5
-      do 20 ns=1,n
+      do nr=1,5
+      do ns=1,n
          mn = nr * n + ns
-      do 20 i=1,3
-      do 20 j=1,3
-      do 20 k=1,3
+      do i=1,3
+      do j=1,3
+      do k=1,3
          h(i,j,mn) = h(i,j,mn) + hrot(i,k,nr) * h(k,j,ns)
- 20   continue
+      enddo
+      enddo
+      enddo
+      enddo
+      enddo
       n = mn
 
       return
@@ -1022,11 +1043,12 @@ c     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -c
 c     (a,b,c)_unitcel -> (x,y,c)_cartesian
 c     Remember a is taken along x
 c     and b lies in the xy plane.
-         do 1000 i=1,3
+         do i=1,3
             vector(i) = 0.d0
-         do 1000 j=1,3
+         do j=1,3
             vector(i) = vector(i) +  r(i,j) * miller(i)
- 1000    continue
+         enddo
+         enddo
       else
          write(*,*) 'not implemented yet!'
          stop
@@ -1130,14 +1152,17 @@ cf2py intent(out) hmirror
 c     rotates reflection angle to (110)
 c     reflecting the vector by the rotated reflection matrix.
 c     new matrix= rz^t . rxz . rz = rz_ki rxz_ik rz_kj
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          hmirror(i,j) = 0.
-      do 100 k=1,3
-      do 100 l=1,3
+      do k=1,3
+      do l=1,3
 c        rz is the rotation mat.
          hmirror(i,j) = hmirror(i,j) + rz(k,i) * rxz(k,l) * rz(l,j)
- 100  continue
+      enddo
+      enddo
+      enddo
+      enddo
       return
       end subroutine mirror110
 c----------------------------------------------------------------------c
@@ -1168,9 +1193,9 @@ c     |  0  0 -1 |
       real*8 r(3,3)
       integer i
       call zmat(r)
-      do 100 i=1,3
+      do i=1,3
          r(i,i) = -1.d0
- 100  continue
+      enddo
       end subroutine central
 c----------------------------------------------------------------------c
 c     calculate the improper mirror rotation matrix
@@ -1222,11 +1247,12 @@ cf2py intent(out) r
 c     R = I cos(th) + sin(th) [u]_x + (1 - cos(th)) [f; u](u; f*)
 c     r_ij = I_ij ct + st cm_ij + (1-ct) u_i u_j
       call crossop(du, cm)
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          r(i,j) = idx(i,j) * ct + st * cm(i,j) +
      $        (1 - ct) * du(i) * du(j)
- 100  continue
+      enddo
+      enddo
       return
       end subroutine vector_ang
 c----------------------------------------------------------------------c
@@ -1248,7 +1274,7 @@ c     will be the same (?) -> NO
          f(i) = .false.
       enddo
       iseqrot = .false.
-      do 90 i=1,3  ! for each of columns of mat a.
+      do i=1,3  ! for each of columns of mat a.
 c        x0 is the current column
          do j=1,3
             x0(j) = a(i,j)
@@ -1276,7 +1302,7 @@ c               write(*,*) 'Equal!'
          else
             f(i) = .true.
          endif
- 90   continue
+      enddo
 
       if (f(1) .and. f(2) .and. f(3)) then
          iseqrot = .true.

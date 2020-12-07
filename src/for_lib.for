@@ -5,13 +5,13 @@ c -------------------------------------------------------
 cf2py intent(in) pole
 Cf2py intent(out) x,y
       norm = 0.
-      do 10 i=1,3
+      do i=1,3
          norm = norm + pole(i)**2
- 10   continue
+      enddo
       norm = dsqrt(norm)
-      do 20 i=1,3
+      do i=1,3
          pole(i) = pole(i) / norm
- 20   continue
+      enddo
       if (pole(3).eq.1) then
          X=0.d0
          Y=0.d0
@@ -37,23 +37,25 @@ Cf2py intent(out) pole_sa
       th = agrain(2)
       tm = agrain(3)
       call euler(2, ph, th, tm, r) ! ca<-sa
-      do 10 i=1,3
-      do 10 j=1,3
+      do i=1,3
+      do j=1,3
          ra(i,j) = r(j,i)
- 10   continue
+      enddo
+      enddo
       norm = 0.
-      do 12 i=1,3
+      do i=1,3
          norm = norm + pole_ca(i)**2
- 12   continue
+      enddo
       norm = sqrt(norm)
-      do 15 i=1,3
+      do i=1,3
          pole_ca(i) = pole_ca(i) / norm
- 15   continue
+      enddo
       pole_sa(:) = 0.
-      do 20 i=1,3
-      do 20 j=1,3
+      do i=1,3
+      do j=1,3
          pole_sa(i) = pole_sa(i) + ra(i,j) * pole_ca(j)
- 20   continue
+      enddo
+      enddo
       return
       end subroutine
 
@@ -114,26 +116,29 @@ c *****************************************************************************
       real*8 phi1,phi,phi2,ag(3,3),aux3(3),agt(3,3)
 cf2py intent(in) ngr, grains, npol, poles_ca
 cf2py intent(out) poles_sa,poles_wgt
-      do 30 igr=1,ngr
+      do igr=1,ngr
          phi1 = grains(igr,1)
          phi  = grains(igr,2)
          phi2 = grains(igr,3)
          call euler(2,phi1,phi,phi2,ag) ! ca<-sa R_ij p_i
-         do 5 i=1,3
-         do 5 j=1,3
+         do i=1,3
+         do j=1,3
             agt(i,j) = ag(j,i) ! sa<-ca
- 5       continue
-      do 30 n=1,npol
+         enddo
+         enddo
+      do n=1,npol
          ! pole_sa<-pole_ca
-         do 20 i=1,3
+         do i=1,3
             aux3(i) = 0.d0
-         do 20 j=1,3
+         do j=1,3
             aux3(i) = aux3(i) + agt(i,j) *
      $           poles_ca(n,j)
- 20      continue
+         enddo
+         enddo
          poles_sa(igr,n,:) = aux3(:)
          poles_wgt(igr,n)  = grains(igr,4)
- 30   continue
+      enddo
+      enddo
       return
       end subroutine
 
@@ -148,34 +153,39 @@ c *****************************************************************************
       real*8 phi1,phi,phi2,ag(3,3),aux3(3),agt(3,3),aux33(3,3)
 cf2py intent(in) ngr, grains, npol, poles_ca, transform
 cf2py intent(out) poles_sa,poles_wgt
-      do 30 igr=1,ngr
+      do igr=1,ngr
          phi1 = grains(igr,1)
          phi  = grains(igr,2)
          phi2 = grains(igr,3)
          call euler(2,phi1,phi,phi2,ag) ! ca<-sa R_ij p_i
-         do 5 i=1,3
-         do 5 j=1,3
+         do i=1,3
+         do j=1,3
             aux33(i,j) = ag(j,i)  ! sa<-ca
- 5       continue
+         enddo
+         enddo
 
 c     transform sa`<-sa<-ca
          agt(:,:)=0d0
-         do 6 i=1,3
-         do 6 j=1,3
-         do 6 k=1,3
+         do i=1,3
+         do j=1,3
+         do k=1,3
             agt(i,j)=agt(i,j)+transform(i,k)*aux33(k,j)
- 6       continue
+         enddo
+         enddo
+         enddo
 
-      do 30 n=1,npol
+      do n=1,npol
          ! pole_sa<-pole_ca
-         do 20 i=1,3
+         do i=1,3
             aux3(i) = 0.d0
-         do 20 j=1,3
+         do j=1,3
             aux3(i) = aux3(i) + agt(i,j) *
      $           poles_ca(n,j)
- 20      continue
+         enddo
+         enddo
          poles_sa(igr,n,:) = aux3(:)
          poles_wgt(igr,n)  = grains(igr,4)
- 30   continue
+      enddo
+      enddo
       return
       end subroutine
