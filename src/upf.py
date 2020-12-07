@@ -2503,9 +2503,9 @@ class polefigure:
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
 
-                #print('equivalent poles in cartesian coords of crystal system')
-                #for k in range(len(p0)):
-                #    print(p0[k])
+                print('equivalent poles in cartesian coords of crystal system')
+                for k in range(len(p0)):
+                    print(p0[k])
 
                 # Vectors pointing at two opposite directions
                 P=np.zeros((len(p0)*2,3))

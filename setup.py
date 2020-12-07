@@ -30,6 +30,6 @@ ext_modules += [
         name="pf_for_lib",
         sources=['src/for_lib.for','src/cs.f'],
         ## extra_compile_args=['-O3']
-        f2py_options=['--fcompiler=intel']
+        # f2py_options=['--fcompiler=intel']
     )]
 setup_numpy(ext_modules=ext_modules)

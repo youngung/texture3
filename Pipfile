@@ -4,11 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-ipython = "*"
-jupyterlab = "*"
-jupyter = "*"
+numpy = "*"
+fortranformat = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
+python_version = "3.6"
