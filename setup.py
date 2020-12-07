@@ -31,5 +31,7 @@ ext_modules += [
         sources=['src/for_lib.for','src/cs.f'],
         ## extra_compile_args=['-O3']
         f2py_options=['--fcompiler=intel']
+        #f2py_options=['--fcompiler=ifort']
+        #f2py_options=['--fcompiler=gnu']
     )]
 setup_numpy(ext_modules=ext_modules)

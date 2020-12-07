@@ -2330,13 +2330,12 @@ class polefigure:
         ## Very often, x/y/z are aligned with RD/TD/ND.
         ## Note that self.bases are referenced in the laboratory axes.
 
-    def pf_new(
-            self,ifig=None,axs=None,
-            poles=[[1,0,0],[1,1,0]],ix='-1',iy='-2',
-            mode='line',
-            dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
-            lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.identity(3),**kwargs):
+    def pf_new(self,ifig=None,axs=None,
+               poles=[[1,0,0],[1,1,0]],ix='-1',iy='-2',
+               mode='line',
+               dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
+               lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
+               rot=0.,iline_khi80=False,transform=np.identity(3),**kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
         Note that upf.polefigure.pf is deprecated and will be deleted soon.
@@ -2415,6 +2414,7 @@ class polefigure:
         import MP.lib.mpl_lib
         import matplotlib.cm
         from matplotlib.colors import LogNorm
+
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
@@ -2424,9 +2424,7 @@ class polefigure:
         ## separately conducted by epfplot function
         if type(self.epf).__name__!='NoneType':
             print('** Writing Experimental pole figures')
-            if transform==np.identity(3).all():
-                pass
-            else:
+            if transform!=np.identity(3).all():
                 print('<transform> is ignored when plotting EPF')
             return self.epfplot(
                 ifig=ifig,cmap=cmap,nlev=nlev, mn=mn, mx=mx,
