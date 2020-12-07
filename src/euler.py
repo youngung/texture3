@@ -41,7 +41,7 @@ def euler(ph=None, th=None, tm=None, a=None, echo=True):
           Vice versa, if matrix is given, given angle aurgments
           are ignored and new euler angles are returned.
 
-    Nomenclature of Euler angle follows Bunge's.
+    Nomenclature of Euler angle follows Bunge's convention
           ph = phi1,
           th = phi
           tm = phi2
