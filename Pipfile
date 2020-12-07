@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 numpy = "*"
 fortranformat = "*"
+ipython = "*"
+jupyter = "*"
+jupyterlab = "*"
 
 [dev-packages]
 
