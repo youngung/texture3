@@ -2499,6 +2499,8 @@ class polefigure:
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
 
+                p0=p0[:1]
+
                 P=np.zeros((len(p0)*2,3))
                 P[:len(p0),:]= p0[:,:]
                 P[len(p0):,:]=-p0[:,:]

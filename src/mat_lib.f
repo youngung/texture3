@@ -13,13 +13,16 @@ c     rot{b_axes<-a_axes}
       integer i,j,k,l
 cf2py intent(in) a, rot
 cf2py intent(out) b
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          b(i,j) = 0.d0
-      do 100 k=1,3
-      do 100 l=1,3
+      do k=1,3
+      do l=1,3
          b(i,j) = b(i,j) + rot(i,k) * a(k,l) * rot(j,l)
- 100  continue
+      enddo
+      enddo
+      enddo
+      enddo
       return
       end subroutine matrot
 c----------------------------------------------------------------------c
@@ -40,22 +43,28 @@ c          rot_(coordinate2<-coordinate1) # sa<-ca
       call voigt(aux6, aux33, a, aux3333, 3)
       b(:,:) = 0.d0
       b3333(:,:,:,:) = 0.d0
-      do 100 i=1,3
-      do 100 j=1,3
-      do 100 k=1,3
-      do 100 l=1,3
+      do i=1,3
+      do j=1,3
+      do k=1,3
+      do l=1,3
          dummy = 0.d0
-         do 20 i1=1,3
-         do 20 j1=1,3
-         do 20 k1=1,3
-         do 20 l1=1,3
+         do i1=1,3
+         do j1=1,3
+         do k1=1,3
+         do l1=1,3
 c     A[i,j,k,l] = r[i,i1] r[j,j1] A[i1,j1,k1,l1] r[k1,k]^t r[l1,l]^t
 c     A[i,j,k,l] = r[i,i1] r[j,j1] A[i1,j1,k1,l1] r[k,k1]   r[l,l1]
             dummy = dummy + rot(i,i1) * rot(j,j1)
      $           * rot(k,k1) * rot(l,l1) * aux3333(i1,j1,k1,l1)
- 20      continue
+         enddo
+         enddo
+         enddo
+         enddo
          b3333(i,j,k,l) = dummy
- 100  continue
+      enddo
+      enddo
+      enddo
+      enddo
       call voigt(aux6,aux33,b,b3333,4)
       return
       end subroutine matrot66
@@ -68,12 +77,14 @@ c     matrix multiplication: c_ij = a_ik * b_kj
 cf2py intent(in) a, b
 cf2py intent(out) c
 c     c = a * b
-      do 200 i=1,3
-      do 200 j=1,3
+      do i=1,3
+      do j=1,3
          c(i,j) = 0.d0
-      do 200 k=1,3
+      do k=1,3
          c(i,j) = c(i,j) + a(i,k) * b(k,j)
- 200  continue
+      enddo
+      enddo
+      enddo
       return
       end subroutine matply
 c----------------------------------------------------------------------c
@@ -82,11 +93,12 @@ c     c[i] = b[i,j] * a[j]
       implicit none
       real*8 a(3), b(3,3), c(3)
       integer i,j
-      do 200 i=1,3
+      do i=1,3
          c(i) = 0.d0
-      do 200 j=1,3
+      do j=1,3
          c(i) = c(i) + b(i,j) * a(j)
- 200  continue
+      enddo
+      enddo
       return
       end subroutine vecply
 c----------------------------------------------------------------------c
@@ -96,11 +108,12 @@ c     indentity matrix returns.
       integer i,j
       real*8 a(3,3)
 cf2py intent(out) a
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          a(i,j) = 0.d0
          if (i.eq.j) a(i,j) = 1.d0
- 100  continue
+      enddo
+      enddo
       return
       end subroutine imat
 c----------------------------------------------------------------------c
@@ -110,10 +123,11 @@ c     zeros matrix returns.
       integer i,j
       real*8 a(3,3)
 cf2py intent(out) a
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          a(i,j) = 0.d0
- 100  continue
+      enddo
+      enddo
       return
       end subroutine zmat
 c----------------------------------------------------------------------c
@@ -139,10 +153,11 @@ cf2py intent(out) m
 c     Calculation of cross product operator
 c     a x b = [a]_x b
 c     Here [a]_x, is calculated and returned for vector u.
-      do 100 i=1,3
-      do 100 j=1,3
+      do i=1,3
+      do j=1,3
          m(i,j) = 0.d0
- 100  continue
+      enddo
+      enddo
       m(1,2) = -u(3)
       m(1,3) =  u(2)
       m(2,1) =  u(3)
@@ -167,10 +182,11 @@ c     Copy matrix a(m,n) to b(m,n)
       implicit none
       integer i,j,m,n
       real*8 a(m,n), b(m,n)
-      do 30 i=1,m
-      do 30 j=1,n
+      do i=1,m
+      do j=1,n
          b(i,j) = a(i,j)
- 30   continue
+      enddo
+      enddo
       return
       end subroutine
 c----------------------------------------------------------------------c
@@ -179,10 +195,11 @@ c     Copy matrix a to b.
       implicit none
       integer i,j
       real*8 a(3,3), b(3,3)
-      do 30 i=1,3
-      do 30 j=1,3
+      do i=1,3
+      do j=1,3
          b(i,j) = a(i,j)
- 30   continue
+      enddo
+      enddo
       return
       end subroutine
 c----------------------------------------------------------------------c
@@ -191,11 +208,13 @@ c     Copy matrix a to b.
       implicit none
       integer i,j,k,m
       real*8 a(3,3,m), b(3,3,m)
-      do 30 k=1,m
-      do 30 i=1,3
-      do 30 j=1,3
+      do k=1,m
+      do i=1,3
+      do j=1,3
          b(i,j,k) = a(i,j,k)
- 30   continue
+      enddo
+      enddo
+      enddo
       return
       end subroutine
 c----------------------------------------------------------------------c
@@ -230,10 +249,11 @@ c     put 33 matrix, a, into c's m-th 3x3 matrix.
       integer i, j, m, n0
 cf2py intent(in) a, n0, m, c
 cf2py intent(out) c
-      do 30 i=1,3
-      do 30 j=1,3
+      do i=1,3
+      do j=1,3
          c(i,j,m) = a(i,j)
- 30   continue
+      enddo
+      enddo
       return
       end subroutine add33mat
 c----------------------------------------------------------------------c
@@ -244,10 +264,11 @@ c     Take out a 33-matrix, a, from c's m-th 3x3 matrix.
       integer i,j,m,n0
 cf2py intent(in) n0, m, c
 cf2py intent(out) a
-      do 30 i=1,3
-      do 30 j=1,3
+      do i=1,3
+      do j=1,3
          a(i,j) = c(i,j,m)
- 30   continue
+      enddo
+      enddo
       end subroutine take33mat
 c----------------------------------------------------------------------c
       subroutine write33mat(m,a)
@@ -300,10 +321,11 @@ c----------------------------------------------------------------------c
       implicit none
       integer n, i, j
       real*8 a(n,n), at(n,n)
-      do 100 i=1,n
-      do 100 j=1,n
+      do i=1,n
+      do j=1,n
          at(i,j) = a(j,i)
- 100  continue
+      enddo
+      enddo
       end subroutine mattrs
 c----------------------------------------------------------------------c
       logical function isdecentrot(a, n, nt)
@@ -312,17 +334,18 @@ c----------------------------------------------------------------------c
       logical isrotmat
       real*8 a(nt, n, n), dum(n, n)
       isdecentrot = .true.
-      do 62 i=1, nt             ! (nt, n, n)
-         do 61 j=1, n
-         do 61 k=1, n
+      do  i=1, nt             ! (nt, n, n)
+         do j=1, n
+         do k=1, n
             dum(j, k) = a(i, j, k)
- 61      continue
+         enddo
+         enddo
 
          if (.not.isrotmat(dum, n)) then
             isdecentrot = .false.
             goto 63
          endif
- 62   enddo
+      enddo
  63   end function isdecentrot ! end of function isdecentrot
 
 c     check if the given matrix is a rotation matrix!                  c
@@ -343,14 +366,15 @@ cf2py intent(out) a
       endif
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c     check if the a_ik inva_kj = identity
-      do 50 i=1,n
-      do 50 j=1,n
+      do i=1,n
+      do j=1,n
          inva(i,j) = a(i,j)
- 50   continue
+      enddo
+      enddo
       call lu_inverse(inva, 3)
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
-      do 69 i=1,n
-      do 69 j=1,n
+      do i=1,n
+      do j=1,n
          if (abs(a(j,i)-inva(i,j)).ge.tiny) then
             write(*,*) 'Inversed matrix is not equivalent',
      $           ' to transposed one.'
@@ -367,7 +391,8 @@ c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
             isrotmat = .false.
             goto 70
          endif
- 69   continue
+      enddo
+      enddo
  70   end function isrotmat ! end of function isrotmat
 c----------------------------------------------------------------------c
 c     Normalize n-dimensional vector u and returns
@@ -421,34 +446,34 @@ c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c        Probing vector (being a reference vector).
 c        Find if pvect is in the given set in the range between
 c        ip+1 and n0
-         do 10 i=1,3
+         do i=1,3
             pvect(i) = a(i,ip)
- 10      continue
+         enddo
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
          inn = 0 !
-         do 100 in=1, n0 ! loop over entire given set.
+         do in=1, n0 ! loop over entire given set.
             inn = inn + 1
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
             if (in.gt.ip) then  ! if in is greater than the probing front
                if (isdupflag(in)) then ! if 'in' is in the flag
-                  do 20 i=1,3
+                  do i=1,3
                      aa(i,inn) = nan ! Put intentionally nan.
- 20               continue
+                  enddo
                else ! if in is not duplicated with the current front.
-                  do 30 i=1,3
+                  do i=1,3
                      aa(i,inn) = a(i,in)
- 30               continue
+                  enddo
                endif
             else if (in.eq.ip) then ! if in is at the probing front
-               do 31 i=1,3
+               do i=1,3
                   aa(i,in) = nan
- 31            continue
+               enddo
             else if (in.lt.ip) then ! if in is already passed by the front
-               do 40 i=1,3
+               do i=1,3
                   aa(i,inn) = nan ! Put intentionally nan.
- 40            continue
+               enddo
             endif
- 100     continue
+         enddo
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c         write(*,'(3f7.3)') (aa(i,inn), i=1,3)
          call isvectin(aa, pvect, n0, ind, icen, isin) ! is pmat in aa?
@@ -464,7 +489,7 @@ c         write(*,'(3f7.3)') (aa(i,inn), i=1,3)
          ip = ip + 1
       enddo ! end of the main do while loop!
       inn = 0
-      do 210 in=1, n0
+      do in=1, n0
          if (.not.(isdupflag(in))) then
             inn = inn + 1
             do i=1,3
@@ -472,7 +497,7 @@ c         write(*,'(3f7.3)') (aa(i,inn), i=1,3)
             enddo
             if (ipr) write(*,'(3f7.3)') (b(i,inn), i=1,3)
          endif
- 210  continue
+      enddo
       n1 = inn
       if (ipr) then
          write(*,*) 'n1: ', n1
@@ -509,53 +534,58 @@ c     If once a duplicate is found, flag the index to the iskipind.
 c     If not, increase the ip
 c     if ip.eq.n0 then finishes.
       ip = 1
-      do 1 i=1,3
-      do 1 j=1,3
+      do i=1,3
+      do j=1,3
          aa(i,j,1) = a(i,j,1)
- 1    continue
+      enddo
+      enddo
       do while(ip.ne.n0) ! Loop until ip meets n0
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
 c        Probing matrix (being a reference matrix).
 c        Find if pmat is in the given set in the range between
 c        ip+1 and n0
-         do 10 i=1,3
-         do 9 j=1,3
+         do i=1,3
+         do j=1,3
             pmat(i,j) = a(i, j, ip)
- 9       continue
+         enddo
          if (ipr) write(*, '(3f7.3)') (pmat(i,j), j=1,3)
- 10      continue
+         enddo
 c         if (ipr) read(*,*)
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
          inn = 0 !
          if (ipr) write(*,*) 'in: loop over entire given set'
-         do 100 in=1, n0 ! loop over entire given set.
+         do in=1, n0            ! loop over entire given set.
             if (ipr) write(*,*) 'in: ', in
             inn = inn + 1
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
             if (in.gt.ip) then  ! if in is greater than the probing front
                if (isdupflag(in)) then ! if 'in' is in the flag
-                  do 20 i=1,3
-                  do 20 j=1,3
+                  do i=1,3
+                  do j=1,3
                      aa(i,j,inn) = nan ! Put intentionally nan.
- 20               continue
+                  enddo
+                  enddo
                else ! if in is not duplicated with the current front.
-                  do 30 i=1,3
-                  do 30 j=1,3
+                  do i=1,3
+                  do j=1,3
                      aa(i,j,inn) = a(i,j,in)
- 30               continue
+                  enddo
+                  enddo
                endif
             else if (in.eq.ip) then ! if in is at the probing front
-               do 31 i=1,3
-               do 31 j=1,3
+               do i=1,3
+               do j=1,3
                   aa(i,j,in) = nan
- 31            continue
+               enddo
+               enddo
             else if (in.lt.ip) then ! if in is already passed by the front
-               do 40 i=1,3
-               do 40 j=1,3
+               do i=1,3
+               do j=1,3
                   aa(i,j,inn) = nan ! Put intentionally nan.
- 40            continue
+               enddo
+               enddo
             endif
- 100     continue
+         enddo
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
          call ismatin(aa, pmat, n0, ind, isin, iopt) ! is pmat in aa?
          if (isin) then
@@ -571,20 +601,20 @@ c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - c
          ip = ip + 1
       enddo ! end of the main do while loop!
       inn = 0
-      do 210 in=1, n0
+      do in=1, n0
          if (.not.(isdupflag(in))) then
             tag(in) =.true.
             inn = inn + 1
-            do 110 i=1,3
-            do 109 j=1,3
+            do i=1,3
+            do j=1,3
                b(i,j,inn) = a(i,j,in)
- 109        continue
+            enddo
 c            write(*,'(3f7.3)') (b(i,j,inn), j=1,3)
- 110        continue
+            enddo
          else
             tag(in) = .false.
          endif
- 210  continue
+      enddo
       n1=inn
       if(ipr) write(*,*) 'n1:', n1
       return
@@ -604,10 +634,10 @@ cf2py intent(out) ind,isin
       do i=1,3
          bm(i) = -b(i)
       enddo
-      do 100 in=1,n
-         do 10 i=1,3
+      do in=1,n
+         do i=1,3
             dum(i) = a(i,in)
- 10      continue
+         enddo
          if (isvecteq(dum,b)) then
             isin = .true.
             ind = in
@@ -620,7 +650,7 @@ cf2py intent(out) ind,isin
                goto 110
             endif
          endif
- 100  continue
+      enddo
  110  return
       end subroutine
 c----------------------------------------------------------------------c
@@ -640,11 +670,12 @@ cf2py intent(out) ind, isin
       isin = .false.
       nan = -17.
       ind = -1
-      do 100 in=1,n
-         do 10 i=1,3
-         do 10 j=1,3
+      do in=1,n
+         do i=1,3
+         do j=1,3
             dum(i,j) = a(i,j,in)
- 10      continue
+         enddo
+         enddo
          if (iopt.eq.0) then
             isin = ismateq(dum, b, 3)
          else if (iopt.eq.1) then
@@ -669,7 +700,7 @@ c$$$               isin = .true.
 c$$$               ind = in
 c$$$               goto 110
 c$$$         endif
- 100  continue
+      enddo
  110  return
       end subroutine
 c----------------------------------------------------------------------c
@@ -679,13 +710,14 @@ c     If matrices a and b are equivalent?
       real*8 a(n,n), b(n,n), tiny
       tiny = 1.d-6
       ismateq = .true.
-      do 10 i=1,n
-      do 10 j=1,n
+      do i=1,n
+      do j=1,n
          if (abs(a(i,j) - b(i,j)).gt.tiny) then
             ismateq = .false.
             goto 20
          endif
- 10   continue
+      enddo
+      enddo
  20   return
       end function ismateq
 c----------------------------------------------------------------------c
@@ -697,12 +729,12 @@ c      tiny = 1.d-10
 c      write(*,*) 'icen', icen
       tiny = 1.d-10
       isvecteq = .true.
-      do 10 i=1,3
+      do i=1,3
          If (abs(a(i)-b(i)).gt.tiny) then
             isvecteq = .false.
             goto 20
          endif
- 10   continue
+      enddo
  20   return
       end function isvecteq
 c----------------------------------------------------------------------c
@@ -751,7 +783,7 @@ C
       XM=0.5D0*(X1+X2)
       XL=0.5D0*(X2-X1)
       XN=N
-      DO 12 I=1,M
+      DO I=1,M
       XI=I
       Z=DCOS(PI*(XI-.25D0)/(XN+0.5D0))
 C
@@ -769,12 +801,12 @@ C
 C
       P1=1.D0
       P2=0.D0
-      DO 11 J=1,N
+      DO J=1,N
       XJ=J
       P3=P2
       P2=P1
       P1=((2.D0*J-1.D0)*Z*P2-(XJ-1.D0)*P3)/XJ
-11    CONTINUE
+      enddo
       PP=N*(Z*P1-P2)/(Z*Z-1.D0)
       Z1=Z
       Z=Z1-P1/PP
@@ -784,7 +816,7 @@ C
       X(N+1-I)=XM+XL*Z
       W(I)=2.D0*XL/((1.D0-Z*Z)*PP*PP)
       W(N+1-I)=W(I)
-12    CONTINUE
+      enddo
       RETURN
       END
 C
@@ -944,11 +976,11 @@ C
 C      INTEGER I,IMAX,J,K,ISINGULAR
       DIMENSION VV(NMAX)
       D=1.
-      DO 12 I=1,N
-        AAMAX=0.
-        DO 11 J=1,N
-          IF (ABS(A(I,J)).GT.AAMAX) AAMAX=ABS(A(I,J))
-11      CONTINUE
+      DO I=1,N
+         AAMAX=0.
+        DO J=1,N
+           IF (ABS(A(I,J)).GT.AAMAX) AAMAX=ABS(A(I,J))
+        enddo
 C
 C        IF (AAMAX.EQ.0.) PAUSE 'SINGULAR MATRIX IN LUDCMP'
 C
@@ -958,35 +990,35 @@ C
         ENDIF
 C
         VV(I)=1./AAMAX
-12    CONTINUE
-      DO 19 J=1,N
-        DO 14 I=1,J-1
-          SUM=A(I,J)
-          DO 13 K=1,I-1
-            SUM=SUM-A(I,K)*A(K,J)
-13        CONTINUE
-          A(I,J)=SUM
-14      CONTINUE
-        AAMAX=0.
+      enddo
+      DO J=1,N
+         DO I=1,J-1
+            SUM=A(I,J)
+            DO K=1,I-1
+               SUM=SUM-A(I,K)*A(K,J)
+            enddo
+            A(I,J)=SUM
+         enddo
+         AAMAX=0.
 
-        DO 16 I=J,N
-          SUM=A(I,J)
-          DO 15 K=1,J-1
-            SUM=SUM-A(I,K)*A(K,J)
-15        CONTINUE
-          A(I,J)=SUM
+         DO I=J,N
+            SUM=A(I,J)
+            DO K=1,J-1
+               SUM=SUM-A(I,K)*A(K,J)
+            enddo
+            A(I,J)=SUM
           DUM=VV(I)*ABS(SUM)
           IF (DUM.GE.AAMAX) THEN
             IMAX=I
             AAMAX=DUM
           ENDIF
-16      CONTINUE
+       enddo
         IF (J.NE.IMAX)THEN
-          DO 17 K=1,N
-            DUM=A(IMAX,K)
+          DO K=1,N
+             DUM=A(IMAX,K)
             A(IMAX,K)=A(J,K)
             A(J,K)=DUM
-17        CONTINUE
+         enddo
           D=-D
           VV(IMAX)=VV(J)
         ENDIF
@@ -1001,11 +1033,11 @@ C
 C
         IF(J.NE.N)THEN
           DUM=1./A(J,J)
-          DO 18 I=J+1,N
-            A(I,J)=A(I,J)*DUM
-18        CONTINUE
+          DO I=J+1,N
+             A(I,J)=A(I,J)*DUM
+          enddo
         ENDIF
-19    CONTINUE
+        enddo
 C
       ISINGULAR=0
 C
@@ -1022,26 +1054,26 @@ C
 C      INTEGER I,II,J,LL
 C      REAL SUM
       II=0
-      DO 12 I=1,N
+      DO I=1,N
         LL=INDX(I)
         SUM=B(LL)
         B(LL)=B(I)
         IF (II.NE.0)THEN
-          DO 11 J=II,I-1
-            SUM=SUM-A(I,J)*B(J)
-11        CONTINUE
+           DO J=II,I-1
+              SUM=SUM-A(I,J)*B(J)
+           enddo
         ELSE IF (SUM.NE.0.) THEN
           II=I
         ENDIF
         B(I)=SUM
-12    CONTINUE
-      DO 14 I=N,1,-1
-        SUM=B(I)
-        DO 13 J=I+1,N
-          SUM=SUM-A(I,J)*B(J)
-13      CONTINUE
-        B(I)=SUM/A(I,I)
-14    CONTINUE
+      enddo
+      DO I=N,1,-1
+         SUM=B(I)
+         DO J=I+1,N
+            SUM=SUM-A(I,J)*B(J)
+         enddo
+         B(I)=SUM/A(I,I)
+      enddo
       RETURN
       END
 C
@@ -1055,26 +1087,25 @@ C      INTEGER N,NP,NROT,NMAX
       PARAMETER (NMAX=500)
 C      INTEGER I,IP,IQ,J
       DIMENSION B(NMAX),Z(NMAX)
-      DO 12 IP=1,N
-        DO 11 IQ=1,N
-          V(IP,IQ)=0.
-11      CONTINUE
-        V(IP,IP)=1.
-12    CONTINUE
-      DO 13 IP=1,N
-        B(IP)=A(IP,IP)
-        D(IP)=B(IP)
-        Z(IP)=0.
-13    CONTINUE
+      DO IP=1,N
+         DO IQ=1,N
+            V(IP,IQ)=0.
+         enddo
+         V(IP,IP)=1.
+      enddo
+      DO IP=1,N
+         B(IP)=A(IP,IP)
+         D(IP)=B(IP)
+         Z(IP)=0.
+      enddo
       NROT=0
-      DO 24 I=1,50
-        SM=0.
-        DO 15 IP=1,N-1
-          DO 14 IQ=IP+1,N
-            SM=SM+ABS(A(IP,IQ))
-
-14        CONTINUE
-15      CONTINUE
+      DO I=1,50
+         SM=0.
+         DO IP=1,N-1
+            DO IQ=IP+1,N
+               SM=SM+ABS(A(IP,IQ))
+            enddo
+         enddo
 C
         IF(SM.EQ.0.)THEN
         IER=0
@@ -1086,8 +1117,8 @@ C
         ELSE
           TRESH=0.
         ENDIF
-        DO 22 IP=1,N-1
-          DO 21 IQ=IP+1,N
+        DO IP=1,N-1
+          DO IQ=IP+1,N
             G=100.*ABS(A(IP,IQ))
             IF((I.GT.4).AND.(ABS(D(IP))+
      *G.EQ.ABS(D(IP))).AND.(ABS(D(IQ))+G.EQ.ABS(D(IQ))))THEN
@@ -1111,42 +1142,42 @@ C
               D(IP)=D(IP)-H
               D(IQ)=D(IQ)+H
               A(IP,IQ)=0.
-              DO 16 J=1,IP-1
-                G=A(J,IP)
-                H=A(J,IQ)
+              DO J=1,IP-1
+                 G=A(J,IP)
+                 H=A(J,IQ)
 
-                A(J,IP)=G-S*(H+G*TAU)
-                A(J,IQ)=H+S*(G-H*TAU)
-16            CONTINUE
-              DO 17 J=IP+1,IQ-1
-                G=A(IP,J)
+                 A(J,IP)=G-S*(H+G*TAU)
+                 A(J,IQ)=H+S*(G-H*TAU)
+              enddo
+              DO J=IP+1,IQ-1
+                 G=A(IP,J)
                 H=A(J,IQ)
                 A(IP,J)=G-S*(H+G*TAU)
                 A(J,IQ)=H+S*(G-H*TAU)
-17            CONTINUE
-              DO 18 J=IQ+1,N
-                G=A(IP,J)
+             enddo
+              DO J=IQ+1,N
+                 G=A(IP,J)
                 H=A(IQ,J)
                 A(IP,J)=G-S*(H+G*TAU)
                 A(IQ,J)=H+S*(G-H*TAU)
-18            CONTINUE
-              DO 19 J=1,N
+             enddo
+              DO J=1,N
                 G=V(J,IP)
                 H=V(J,IQ)
 
                 V(J,IP)=G-S*(H+G*TAU)
                 V(J,IQ)=H+S*(G-H*TAU)
-19            CONTINUE
+             enddo
               NROT=NROT+1
             ENDIF
-21        CONTINUE
-22      CONTINUE
-        DO 23 IP=1,N
-          B(IP)=B(IP)+Z(IP)
-          D(IP)=B(IP)
-          Z(IP)=0.
-23      CONTINUE
-24    CONTINUE
+         enddo
+      enddo
+      DO IP=1,N
+         B(IP)=B(IP)+Z(IP)
+         D(IP)=B(IP)
+         Z(IP)=0.
+      enddo
+      enddo
 C      PAUSE 'TOO MANY ITERATIONS IN JACOBI'
 C
       IER=1
@@ -1163,25 +1194,25 @@ C      INTEGER N,NP
       DIMENSION D(NP),V(NP,NP)
 C      INTEGER I,J,K
 C      REAL P
-      DO 13 I=1,N-1
+      DO I=1,N-1
         K=I
         P=D(I)
-        DO 11 J=I+1,N
+        DO J=I+1,N
           IF(D(J).GE.P)THEN
             K=J
             P=D(J)
           ENDIF
-11      CONTINUE
+       enddo
         IF(K.NE.I)THEN
           D(K)=D(I)
           D(I)=P
-          DO 12 J=1,N
+          DO J=1,N
             P=V(J,I)
             V(J,I)=V(J,K)
             V(J,K)=P
-12        CONTINUE
+         enddo
         ENDIF
-13    CONTINUE
+      enddo
       RETURN
       END
 CFEE
@@ -1207,41 +1238,47 @@ C ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       DATA ((IJV(N,M),M=1,2),N=1,6)/1,1,2,2,3,3,2,3,1,3,1,2/
 
       IF(IOPT.EQ.1) THEN
-      DO 30 I=1,6
-      I1=IJV(I,1)
-      I2=IJV(I,2)
-      T2(I1,I2)=T1(I)
-   30 T2(I2,I1)=T1(I)
+      DO I=1,6
+         I1=IJV(I,1)
+         I2=IJV(I,2)
+         T2(I1,I2)=T1(I)
+         T2(I2,I1)=T1(I)
+      enddo
       ENDIF
 C
       IF(IOPT.EQ.2) THEN
-      DO 40 I=1,6
-      I1=IJV(I,1)
-      I2=IJV(I,2)
-   40 T1(I)=T2(I1,I2)
+      DO I=1,6
+         I1=IJV(I,1)
+         I2=IJV(I,2)
+         T1(I)=T2(I1,I2)
+      enddo
       ENDIF
 C
       IF (IOPT.EQ.3) THEN
-      DO 10 I=1,6
+      DO I=1,6
       I1=IJV(I,1)
       I2=IJV(I,2)
-      DO 10 J=1,6
+      DO J=1,6
       J1=IJV(J,1)
       J2=IJV(J,2)
       C4(I1,I2,J1,J2)=C2(I,J)
       C4(I2,I1,J1,J2)=C2(I,J)
       C4(I1,I2,J2,J1)=C2(I,J)
-   10 C4(I2,I1,J2,J1)=C2(I,J)
+      C4(I2,I1,J2,J1)=C2(I,J)
+      enddo
+      enddo
       ENDIF
 C
       IF(IOPT.EQ.4) THEN
-      DO 20 I=1,6
+      DO I=1,6
       I1=IJV(I,1)
       I2=IJV(I,2)
-      DO 20 J=1,6
+      DO J=1,6
       J1=IJV(J,1)
       J2=IJV(J,2)
-   20 C2(I,J)=C4(I1,I2,J1,J2)
+      C2(I,J)=C4(I1,I2,J1,J2)
+      enddo
+      enddo
       ENDIF
 C
       RETURN
