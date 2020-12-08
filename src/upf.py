@@ -2415,6 +2415,7 @@ class polefigure:
         import MP.lib.mpl_lib
         import matplotlib.cm
         from matplotlib.colors import LogNorm
+
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
@@ -2424,9 +2425,7 @@ class polefigure:
         ## separately conducted by epfplot function
         if type(self.epf).__name__!='NoneType':
             print('** Writing Experimental pole figures')
-            if transform==np.identity(3).all():
-                pass
-            else:
+            if transform!=np.identity(3).all():
                 print('<transform> is ignored when plotting EPF')
             return self.epfplot(
                 ifig=ifig,cmap=cmap,nlev=nlev, mn=mn, mx=mx,
