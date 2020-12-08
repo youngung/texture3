@@ -2332,11 +2332,11 @@ class polefigure:
 
     def pf_new(
             self,ifig=None,axs=None,
-            poles=[[1,0,0],[1,1,0]],ix='-1',iy='-2',
+            poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
             mode='line',
             dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
             lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.identity(3),**kwargs):
+            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),**kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
         Note that upf.polefigure.pf is deprecated and will be deleted soon.
@@ -2504,6 +2504,7 @@ class polefigure:
                                cdim=self.cdim,cang=self.cang)
 
                 print('equivalent poles in cartesian coords of crystal system')
+                print('really?')
                 for k in range(len(p0)):
                     print(p0[k])
 
