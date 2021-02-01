@@ -2561,16 +2561,17 @@ class polefigure:
             raise IOError('Unexpected mode given to pf_new')
 
 
-        if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
-        else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
+        if type(axs)==type(None):
+            if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
+            else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
+            ##
+            axs=[]
+            for i in range(len(poles)):
+                _ax_ = fig.add_subplot(1,len(poles),i+1)
+                axs.append(_ax_)
 
-        ##
-        axs=[]
-        for i in range(len(poles)):
-            _ax_ = fig.add_subplot(1,len(poles),i+1)
-            axs.append(_ax_)
+            plt.subplots_adjust(left=0,right=0.8)
 
-        plt.subplots_adjust(left=0,right=0.8)
 
         for i in range(len(poles)):
 
@@ -2633,9 +2634,15 @@ class polefigure:
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
                 axs[i].scatter(x,y,**kwargs)
-                deco_pf(axs[i],None,miller[i],0,
-                        iskip_last=False,ix=ix,iy=iy,mode=mode)
-        return fig
+                try:
+                    deco_pf(axs[i],None,miller[i],0,
+                            iskip_last=False,ix=ix,iy=iy,mode=mode)
+                except:
+                    pass
+        try:
+            return fig
+        except:
+            pass
         #--------------------------------------------------#
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
