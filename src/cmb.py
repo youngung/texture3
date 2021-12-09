@@ -343,9 +343,9 @@ class RVE:
                     ' in the given mtex odf file')
 
             res   = 5
-            nphi1 = 360 / res + 1
-            nphi  =  90 / res + 1
-            nphi2 =  90 / res + 1
+            nphi1 = int(360 / res) + 1
+            nphi  = int(90 / res) + 1
+            nphi2 = int(90 / res) + 1
             cod_  = np.zeros((nphi1,nphi,nphi2))
 
             n=0
@@ -694,9 +694,9 @@ def main(odf, ngrain, outputfile, iplot=True, irandom=False):
 
     if iplot==True:
         mypf = upf.polefigure(grains =  temp.rve, csym='cubic')
-        mypf.pf(pole=[[1,0,0],[1,1,0],[1,1,1]], mode='contourf', ifig=2)
+        fig=mypf.pf(pole=[[1,0,0],[1,1,0],[1,1,1]], mode='contourf', ifig=2)
         plt.show()
-        pass
+        fig.savefig('temp.pdf')
 
     if irandom==True:
         filename='iso.cmb'
@@ -716,39 +716,6 @@ def main(odf, ngrain, outputfile, iplot=True, irandom=False):
         pass
     pass
 
-if __name__=='__main__':
-    import getopt, sys
-    try:
-        opts, args = getopt.getopt(sys.argv[1:],
-                                    'i:n:o:sr')
-        pass
-    except getopt.GetoptError as err:
-        print(str(err))
-        sys.exit(2)
-        pass
-
-    ##  default options  ##
-    iplot = False
-    ngrain = 2000
-    outputfile ='temp.cmb'
-    irandom = False
-    ## ----------------- ##
-
-    for o, a in opts:
-        if o in ('-i'): inputfile = a
-        elif o in ('-n'): ngrain = int(a)
-        elif o in ('-o'): outputfile = a
-        elif o in ('-s'): iplot=True
-        elif o in ('-r'): irandom=True
-        else: assert False, 'Unhandled option'
-        pass
-
-    main(odf=inputfile, ngrain=ngrain,
-         outputfile=outputfile, iplot=iplot,
-         irandom=irandom
-         )
-
-    pass
 
 
 def random_gen(ngrain=100,mmm=False,phi1=360,phi2=360,phi=360):
@@ -781,3 +748,24 @@ def random_gen(ngrain=100,mmm=False,phi1=360,phi2=360,phi=360):
     random(phi1,phi2,phi,ngrain,iplot=False,filename=filename)
     print('%s has been created'%filename)
     upf.cub(filename,ifig=10)
+
+
+if __name__=='__main__':
+    import getopt, sys, argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--iplot', action='store_true',help='whether or not to plot')
+    parser.add_argument(
+        '--irand', action='store_true',help='random?')
+    parser.add_argument(
+        '--inp', type=str,help='input odf file')
+    parser.add_argument(
+        '--out', type=str,help='output file',default='temp.cmb')
+    parser.add_argument(
+        '--ngr', type=int,help='# of weighted grains',default=2000)
+
+    args      = parser.parse_args()
+    main(odf=args.inp, ngrain=args.ngr,
+         outputfile=args.out, iplot=args.iplot,
+         irandom=args.irand)
+    pass

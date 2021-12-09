@@ -26,7 +26,7 @@ def __60_120_rot111__(h):
     h60[0,2] = 1.
     h60[1,0] = 1.
     h60[2,1] = 1.
-    
+
     h120[0,1] = 1.
     h120[1,2] = 1.
     h120[2,0] = 1.
@@ -55,7 +55,7 @@ def __rot_90_180_270__(h):
     cos = np.cos; sin = np.sin; pi = np.pi
     hx = np.zeros((3,3,3))
     h_ = h.copy(); htemp = []
-        
+
     for m in range(3):
         ang = pi/2. * float(m+1)
         hx[m,0,0] = cos(ang)
@@ -76,7 +76,7 @@ def __rot_90_180_270__(h):
 def __rot_nrot_x1__(h,nrot):
     """
     Mirror plane at 30 or 60 or 45 deg with respect to x1
-    
+
     *hexagonal, trigonal, tetragonal
 
     hexa: nrot = 6
@@ -96,7 +96,7 @@ def __rot_nrot_x1__(h,nrot):
 def __rot_nrot_001__(h, csym=None):
     """
     Rotations of 2*pi/nrot around axis <001>
-    
+
     *hexagoanl, trigonal, tetragonal
 
     ---------
@@ -120,7 +120,7 @@ def __rot_nrot_001__(h, csym=None):
         hx[nr,2,2] = 1.0
         hx[nr,0,1] =-sin(ang)
         hx[nr,1,0] = sin(ang)
-        
+
     for nr in range(nrot-1):
         htemp.append(np.dot(hx[nr], h_))
 
@@ -150,7 +150,7 @@ def __mmm__():
     return h
 
 ### deprecated ###
-# def __ortho__(v): 
+# def __ortho__(v):
 #     """
 #     Orthogonal sample symmetry to a vector (v) in 3D
 #     """
@@ -158,7 +158,7 @@ def __mmm__():
 #     v2 = np.array([-a[0], a[1], a[2]])
 #     v3 = np.array([a[0], -a[1], a[2]])
 #     v4 = np.array([-a[0], -a[1], a[2]])
-    
+
 #     v5 = v1.copy()* -1
 #     v6 = v2.copy()* -1
 #     v7 = v3.copy()* -1
@@ -171,7 +171,7 @@ def __mmm__():
 def cubic():
     H = []     # H is the master list containing all the numpy arrays of operations
     H.append(np.identity(3))    # identity operation
-    
+
     # rotations of (pi/3) & (2*pi/3) around <111>
     niter = len(H)
     for i in range(niter):
@@ -179,7 +179,7 @@ def cubic():
         h0 = h60.copy(); h1 = h120.copy()
         H.append(h0)
         H.append(h1)
-        
+
     # mirror across the plane (110)
     niter = len(H)
     for i in range(niter):
@@ -200,7 +200,7 @@ def cubic():
     # trim the values.
     for i in range(len(H)):
         H[i] = __trim0__(h=H[i])
-    return H    
+    return H
 
 def cubic_centro():
     h_old = cubic()
@@ -209,7 +209,7 @@ def cubic_centro():
     for i in range(len(h_old)):
         h_new.append(np.dot(h_old[i],h_n))
     return h_new
-        
+
 
 def triclinic():
     H = []
@@ -239,6 +239,33 @@ def hexag():
         H[i] = __trim0__(h=H[i])
     return H
 
+## orthorhombic
+def ortho():
+    H =[]
+    H.append(np.identity(3))
+    niter=len(H)
+
+    pi=np.pi
+    cp=cos(pi)
+    sp=sin(pi)
+    # 180 deg rotation around (001)
+    h=np.zeros(3,3)
+    h[0,0]=cp
+    h[1,1]=cp
+    h[2,2]=1.
+    h[0,1]=-sp
+    h[1,0]=sp
+    H.append(h)
+
+    # x-mirror & y-mirror
+    h=np.identity(3)
+    h[0,0]=-1
+    H.append(h)
+    h=np.identity(3)
+    h[1,1]=-1
+    H.append(h)
+
+
 
 ## trigonal
 def trigo():
@@ -255,7 +282,7 @@ def trigo():
     for i in range(niter):
         h = __rot_nrot_001__(h=H[i], csym='trigo')
         H.append(h)
-    
+
     for i in range(len(H)):
         H[i] = __trim0__(h=H[i])
     return H
@@ -282,7 +309,7 @@ def tetra():
         H[i] = __trim0__(h=H[i])
     return H
 
-## 
+##
 
 
 def cvec(cdim=None, cang=None):
@@ -299,20 +326,20 @@ def cvec(cdim=None, cang=None):
 
     cdim = np.array(cdim)
     cang = np.array(cang)
-    # angle to radian    
+    # angle to radian
     cang = cang * np.pi/180.
     # cvec
     cvec = np.zeros((3,3))
-    
+
     cvec[0,0] = np.sin(cang[1])
     cvec[1,0] = 0.
     cvec[2,0] = np.cos(cang[1])
-    
+
     cvec[0,1] = (np.cos(cang[2])-np.cos(cang[0])\
                      *np.cos(cang[1]))/np.sin(cang[1])
     cvec[2,1] = np.cos(cang[0])
     cvec[1,1] = np.sqrt(1.-cvec[0,1]**2-cvec[2,1]**2)
-    
+
     cvec[0,2] = 0.
     cvec[1,2] = 0.
     cvec[2,2] = 1.
