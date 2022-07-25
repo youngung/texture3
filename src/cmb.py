@@ -335,6 +335,12 @@ class RVE:
                 self.p3max=90.
                 self.resolution = 5.
                 self.inc=self.resolution
+            elif p1mx==355 and pmx==90 and p2mx==55:
+                self.p1max=360.
+                self.p2max=60.
+                self.p3max=90.
+                self.resolution = 5.
+                self.inc=self.resolution
             else:
                 print('phi1:',p1mx)
                 print('PHI :',pmx)
@@ -343,9 +349,9 @@ class RVE:
                     ' in the given mtex odf file')
 
             res   = 5
-            nphi1 = int(360 / res) + 1
-            nphi  = int(90 / res) + 1
-            nphi2 = int(90 / res) + 1
+            nphi1 = int(self.p1max / res) + 1
+            nphi  = int(self.p3max / res) + 1
+            nphi2 = int(self.p2max / res) + 1
             cod_  = np.zeros((nphi1,nphi,nphi2))
 
             n=0
