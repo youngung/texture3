@@ -2438,6 +2438,7 @@ class polefigure:
         if type(cdim)!=type(None): self.cdim=cdim
         ## 4 digits miller indices are used for hexagon and trigo
         if self.csym=='hexag' or self.csym=='trigo':
+            print('you are here')
             pole_=[]
             for i in range(len(poles)):
                 p  = [0,0,0]
@@ -2502,10 +2503,10 @@ class polefigure:
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
 
-                print('equivalent poles in cartesian coords of crystal system')
-                print('really?')
+                print('p0 prints begins')
                 for k in range(len(p0)):
                     print(p0[k])
+                print('p0 prints ends')
 
                 # Vectors pointing at two opposite directions
                 P=np.zeros((len(p0)*2,3))
@@ -3008,8 +3009,14 @@ def __equiv__(miller=None, csym=None,
         for i in range(len(H)):
             sneq.append(np.dot(H[i], vect))
     elif csym=='hexag':
-        #H = sym_cy.hexag(1) #cython compiled
         H = sym.hexag() #operators
+
+        print('# of symmetry operations:',len(H))
+        for m in range(len(H)):
+            for i in range(3):
+                print('%5.2f %5.2f %5.2f'%(H[m][i,0],H[m][i,1],H[m][i,2]))
+            print('--')
+
         v = cv(pole=vect, cdim=cdim, cang=cang)
         sneq = np.tensordot(H,vect,axes=[-1,0])
         # for i in xrange(len(H)):

@@ -92,10 +92,10 @@ def __rot_nrot_x1__(h,nrot):
     hx[0,1] = 2.*cos(ang)*sin(ang)
     hx[1,0] = hx[0,1]
 
-    print('rot_nrot_x1')
-    for j in range(3):
-        print('%5.2f %5.2f %5.2f'%(hx[j][0],hx[j][1],hx[j][2]))
-    print('--')
+    #print('rot_nrot_x1')
+    #for j in range(3):
+    #print('%5.2f %5.2f %5.2f'%(hx[j][0],hx[j][1],hx[j][2]))
+    #print('--')
 
     return np.dot(hx,h)
 
@@ -127,8 +127,24 @@ def __rot_nrot_001__(h, csym=None):
         hx[nr,0,1] =-sin(ang)
         hx[nr,1,0] = sin(ang)
 
+    print('nx for nrot-1',nrot-1)
+    for nr in range(nrot-1):
+        for i in range(3):
+            print('%5.2f %5.2f %5.2f'%(hx[nr,i,0],hx[nr,i,1],hx[nr,i,2]))
+        print('--')
+    print()
+    print()
+
     for nr in range(nrot-1):
         htemp.append(np.dot(hx[nr], h_))
+
+    print('htemp:')
+    for nr in range(nrot-1):
+        for i in range(3):
+            print('%5.2f %5.2f %5.2f'%(htemp[nr][i,0],htemp[nr][i,1],htemp[nr][i,2]))
+        print('--')
+
+
 
     return np.array(htemp)
 
@@ -234,22 +250,72 @@ def hexag():
         h = __rot_nrot_x1__(h=H[i].copy(),nrot=nrot)
         H.append(h)
 
-    #rotations of 2*pi/6 around axis <001> for hexagonals.
-    niter = len(H)
-    for i in range(niter):
-        h = __rot_nrot_001__(h=H[i],csym='hexag')
-        for ix in range(len(h)):
-            H.append(h[ix])
 
-    for i in range(len(H)):
-        H[i] = __trim0__(h=H[i])
-
-
-    print('symmetry matrices in sym.hexag')
+    print('mirror w.r.t. x1')
     for i in range(len(H)):
         for j in range(3):
             print('%5.2f %5.2f %5.2f'%(H[i][j][0],H[i][j][1],H[i][j][2]))
         print('--')
+    print()
+
+
+    hx=np.zeros((3,3,24))
+
+    for i in range(nrot-1):
+        nr=i+1
+        ang=nr*2*np.pi/nrot
+        # print('ang:',ang)
+        hx[0,0,i]=np.cos(ang)
+        hx[1,1,i]=np.cos(ang)
+        hx[2,2,i]=1.
+        hx[0,1,i]=-np.sin(ang)
+        hx[1,0,i]= np.sin(ang)
+
+    print('nrot-1:',nrot-1)
+    print('hx after rot_about_001')
+    for i in range(nrot-1):
+        nr=i+1
+        for j in range(3):
+            print('%5.2f %5.2f %5.2f'%(hx[j,0,i],hx[j,1,i],hx[j,2,i]))
+        print('--')
+    print('end of hx')
+    print()
+    print()
+
+    print('nrot-1:',nrot-1)
+
+    HS=[]
+    for i in range(nrot-1):
+        a=hx[:,:,i].copy()
+        for k in range(len(H)):
+            b=H[k].copy()
+            aux=np.zeros((3,3))
+            for m in range(3):
+                for n in range(3):
+                    for o in range(3):
+                        aux[m,n]=aux[m,n]+a[m,o]*b[o,n]
+            # aux = np.dot(hx[:,:,i],H[k])
+
+            for j in range(3):
+                print('%5.2f %5.2f %5.2f'%(aux[j,0],aux[j,1],aux[j,2]))
+            print('--')
+            HS.append(aux)
+
+    for i in range(len(HS)):
+        H.append(HS[i])
+    print('###')
+
+    # #rotations of 2*pi/6 around axis <001> for hexagonals.
+    # niter = len(H)
+    # for i in range(niter):
+    #     h = __rot_nrot_001__(h=H[i],csym='hexag')
+    #     for ix in range(len(h)):
+    #         H.append(h[ix])
+
+    # for i in range(len(H)):
+    #     H[i] = __trim0__(h=H[i])
+
+
     return H
 
 ## orthorhombic
