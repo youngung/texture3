@@ -2552,7 +2552,7 @@ class polefigure:
                         XY.append([x,y])
                 pf_dots.append(np.array(XY))
 
-            pf_dots=np.array(pf_dots)
+            pf_dots=np.array(pf_dots,dtype='object')
             et = time.time()-t0
             uet(et,head='Elapsed time for calculting dots')
             # return pf_dots
