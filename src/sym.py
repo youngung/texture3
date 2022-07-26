@@ -87,10 +87,16 @@ def __rot_nrot_x1__(h,nrot):
     hx = np.zeros((3,3))
     ang = pi/float(nrot)
     hx[0,0] = cos(ang)**2 - sin(ang)**2
-    hx[1,1] = -h[0,0]
+    hx[1,1] = -hx[0,0]
     hx[2,2] = 1.0
     hx[0,1] = 2.*cos(ang)*sin(ang)
-    hx[1,0] = h[0,1]
+    hx[1,0] = hx[0,1]
+
+    print('rot_nrot_x1')
+    for j in range(3):
+        print('%5.2f %5.2f %5.2f'%(hx[j][0],hx[j][1],hx[j][2]))
+    print('--')
+
     return np.dot(hx,h)
 
 def __rot_nrot_001__(h, csym=None):
@@ -135,7 +141,7 @@ def __trim0__(h):
     hx = h.copy()
     for i in range(len(hx)):
         for j in range(len(hx[i])):
-            if abs(hx[i,j]) < 0.1**6:
+            if abs(hx[i,j]) < 1e-6:
                 hx[i,j] = 0.
     return hx
 
@@ -237,6 +243,13 @@ def hexag():
 
     for i in range(len(H)):
         H[i] = __trim0__(h=H[i])
+
+
+    print('symmetry matrices in sym.hexag')
+    for i in range(len(H)):
+        for j in range(3):
+            print('%5.2f %5.2f %5.2f'%(H[i][j][0],H[i][j][1],H[i][j][2]))
+        print('--')
     return H
 
 ## orthorhombic
