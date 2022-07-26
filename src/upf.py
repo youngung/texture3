@@ -2503,9 +2503,9 @@ class polefigure:
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
 
-                print('p0 prints begins')
+                print('p0 prints begins (=sneq)')
                 for k in range(len(p0)):
-                    print(p0[k])
+                    print('%5.2f %5.2f %5.2f'%(p0[k][0],p0[k][1],p0[k][2]))
                 print('p0 prints ends')
 
                 # Vectors pointing at two opposite directions
@@ -3011,23 +3011,34 @@ def __equiv__(miller=None, csym=None,
     elif csym=='hexag':
         H = sym.hexag() #operators
 
+        print('miller given to __equiv__')
+        print('miller:',miller)
         print('# of symmetry operations:',len(H))
         for m in range(len(H)):
             for i in range(3):
                 print('%5.2f %5.2f %5.2f'%(H[m][i,0],H[m][i,1],H[m][i,2]))
             print('--')
 
+        print('vect:',vect)
         v = cv(pole=vect, cdim=cdim, cang=cang)
+        print('v:')
+        print(v)
         # sneq = np.tensordot(H,vect,axes=[-1,0])
-        for i in range(len(H)):
-            sneq.append(np.dot(H[i], v))
+        sneq=np.zeros((len(H),3))
+        for m in range(len(H)):
+            aux33=H[m].copy()
+            bux3=np.zeros((3))
+            for i in range(3):
+                for j in range(3):
+                    bux3[i]=bux3[i]+aux33[i,j]*v[j]
+            sneq[m,:]=bux3[:]
     elif csym=='None':
         #H = [np.identity(3)]
         sneq = [vect]
     elif csym=='centro':
         sneq = [vect, -vect]
     else:
-        print('Given symmetry, %s is not prepared'%csym)
+        print('Given symmetry, %s, is not expected'%csym)
         input('Enter to raise an error and quits the job');
         raise IOError
 

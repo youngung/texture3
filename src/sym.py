@@ -423,9 +423,21 @@ def cvec(cdim=None, cang=None):
     cvec[1,2] = 0.
     cvec[2,2] = 1.
 
+    print('cvec')
+    for i in range(3):
+        print('%5.2f %5.2f %5.2f'%(cvec[i,0],cvec[i,1],cvec[i,2]))
+    print('--')
+
     for i in range(3):
         for j in range(3):
             cvec[i,j] = cdim[j] * cvec[i,j]
+
+
+    print('cvec = cdim * cvec')
+    for i in range(3):
+        print('%5.2f %5.2f %5.2f'%(cvec[i,0],cvec[i,1],cvec[i,2]))
+    print('--')
+
     return cvec
 
 
