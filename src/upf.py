@@ -2444,10 +2444,13 @@ class polefigure:
                 p  = [0,0,0]
                 p_ = poles[i]
                 if len(p_)!=4: raise IOError('4 digits should be given')
+                p[0] = p_[0]
+                p[1] = p_[1]
                 p[2] = p_[3]
-                p[0] = p_[0] - p_[2]
-                p[1] = p_[1] - p_[2]
+                # p[0] = p_[0] - p_[2]
+                # p[1] = p_[1] - p_[2]
                 pole_.append(p)
+
             poles = pole_[::]
 
         tiny = 1.e-9
