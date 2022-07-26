@@ -3018,9 +3018,9 @@ def __equiv__(miller=None, csym=None,
             print('--')
 
         v = cv(pole=vect, cdim=cdim, cang=cang)
-        sneq = np.tensordot(H,vect,axes=[-1,0])
-        # for i in xrange(len(H)):
-        #     sneq.append(np.dot(H[i], v))
+        # sneq = np.tensordot(H,vect,axes=[-1,0])
+        for i in range(len(H)):
+            sneq.append(np.dot(H[i], v))
     elif csym=='None':
         #H = [np.identity(3)]
         sneq = [vect]

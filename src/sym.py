@@ -251,12 +251,12 @@ def hexag():
         H.append(h)
 
 
-    print('mirror w.r.t. x1')
-    for i in range(len(H)):
-        for j in range(3):
-            print('%5.2f %5.2f %5.2f'%(H[i][j][0],H[i][j][1],H[i][j][2]))
-        print('--')
-    print()
+    # print('mirror w.r.t. x1')
+    # for i in range(len(H)):
+    #     for j in range(3):
+    #         print('%5.2f %5.2f %5.2f'%(H[i][j][0],H[i][j][1],H[i][j][2]))
+    #     print('--')
+    # print()
 
 
     hx=np.zeros((3,3,24))
@@ -271,18 +271,18 @@ def hexag():
         hx[0,1,i]=-np.sin(ang)
         hx[1,0,i]= np.sin(ang)
 
-    print('nrot-1:',nrot-1)
-    print('hx after rot_about_001')
-    for i in range(nrot-1):
-        nr=i+1
-        for j in range(3):
-            print('%5.2f %5.2f %5.2f'%(hx[j,0,i],hx[j,1,i],hx[j,2,i]))
-        print('--')
-    print('end of hx')
-    print()
-    print()
+    # print('nrot-1:',nrot-1)
+    # print('hx after rot_about_001')
+    # for i in range(nrot-1):
+    #     nr=i+1
+    #     for j in range(3):
+    #         print('%5.2f %5.2f %5.2f'%(hx[j,0,i],hx[j,1,i],hx[j,2,i]))
+    #     print('--')
+    # print('end of hx')
+    # print()
+    # print()
 
-    print('nrot-1:',nrot-1)
+    # print('nrot-1:',nrot-1)
 
     HS=[]
     for i in range(nrot-1):
@@ -296,14 +296,14 @@ def hexag():
                         aux[m,n]=aux[m,n]+a[m,o]*b[o,n]
             # aux = np.dot(hx[:,:,i],H[k])
 
-            for j in range(3):
-                print('%5.2f %5.2f %5.2f'%(aux[j,0],aux[j,1],aux[j,2]))
-            print('--')
+            # for j in range(3):
+            #     print('%5.2f %5.2f %5.2f'%(aux[j,0],aux[j,1],aux[j,2]))
+            # print('--')
             HS.append(aux)
 
     for i in range(len(HS)):
         H.append(HS[i])
-    print('###')
+    # print('###')
 
     # #rotations of 2*pi/6 around axis <001> for hexagonals.
     # niter = len(H)
