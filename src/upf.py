@@ -2595,7 +2595,7 @@ class polefigure:
                     norm=norm,cmap=cmap_mpl)
 
                 if   mode=='line': func = axs[i].contour
-                elif mode=='fill': func = axs[i].contourf
+                elif mode in ['fill', 'contour']: func = axs[i].contourf
 
                 ## contour plot
                 nArray[i][np.isnan(nArray[i])]=0.
