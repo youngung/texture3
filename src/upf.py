@@ -2548,7 +2548,7 @@ class polefigure:
                     x,y=projection(pole=poles_sa[i])
                     # print('(x,y):',x,y)
 
-                    if x**2+y**2<=1.:
+                    if x**2+y**2<=1+1e-3:
                         ## a work-around to switch to the opposite hemisphere
                         y=-y
                         x=-x
