@@ -250,15 +250,6 @@ def hexag():
         h = __rot_nrot_x1__(h=H[i].copy(),nrot=nrot)
         H.append(h)
 
-
-    # print('mirror w.r.t. x1')
-    # for i in range(len(H)):
-    #     for j in range(3):
-    #         print('%5.2f %5.2f %5.2f'%(H[i][j][0],H[i][j][1],H[i][j][2]))
-    #     print('--')
-    # print()
-
-
     hx=np.zeros((3,3,24))
 
     for i in range(nrot-1):
@@ -271,19 +262,6 @@ def hexag():
         hx[0,1,i]=-np.sin(ang)
         hx[1,0,i]= np.sin(ang)
 
-    # print('nrot-1:',nrot-1)
-    # print('hx after rot_about_001')
-    # for i in range(nrot-1):
-    #     nr=i+1
-    #     for j in range(3):
-    #         print('%5.2f %5.2f %5.2f'%(hx[j,0,i],hx[j,1,i],hx[j,2,i]))
-    #     print('--')
-    # print('end of hx')
-    # print()
-    # print()
-
-    # print('nrot-1:',nrot-1)
-
     HS=[]
     for i in range(nrot-1):
         a=hx[:,:,i].copy()
@@ -294,33 +272,17 @@ def hexag():
                 for n in range(3):
                     for o in range(3):
                         aux[m,n]=aux[m,n]+a[m,o]*b[o,n]
-            # aux = np.dot(hx[:,:,i],H[k])
 
-            # for j in range(3):
-            #     print('%5.2f %5.2f %5.2f'%(aux[j,0],aux[j,1],aux[j,2]))
-            # print('--')
             HS.append(aux)
 
     for i in range(len(HS)):
         H.append(HS[i])
-    # print('###')
-
-    # #rotations of 2*pi/6 around axis <001> for hexagonals.
-    # niter = len(H)
-    # for i in range(niter):
-    #     h = __rot_nrot_001__(h=H[i],csym='hexag')
-    #     for ix in range(len(h)):
-    #         H.append(h[ix])
-
-    # for i in range(len(H)):
-    #     H[i] = __trim0__(h=H[i])
-
 
     return H
 
 ## orthorhombic
 def ortho():
-    H =[]
+    H=[]
     H.append(np.identity(3))
     niter=len(H)
 
@@ -343,8 +305,7 @@ def ortho():
     h=np.identity(3)
     h[1,1]=-1
     H.append(h)
-
-
+    return H
 
 ## trigonal
 def trigo():
@@ -366,10 +327,10 @@ def trigo():
         H[i] = __trim0__(h=H[i])
     return H
 
+## tetragonal
 def tetra():
     H = []
     H.append(np.identity(3))
-
     #mirror plane at 45 degree with respect to x1
     nrot = 4
     niter = len(H)
