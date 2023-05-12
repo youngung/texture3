@@ -409,8 +409,8 @@ class RVE:
         # if ssym==0: ngrain = ngrain/2
         # elif ssym==1: ngrain = ngrain/4
         # elif ssym==2: ngrain = ngrain/8
-        if ssym=='mmm': ngrain = ngrain / 4
-        elif ssym==None: ngrain=ngrain
+        if ssym=='mmm': ngrain = int(ngrain / 4)
+        elif ssym==None: ngrain = ngrain
         else: raise IOError("Unexpected sample symmetry is given")
 
         print('ssym:', ssym, 'ngrain=',ngrain)
