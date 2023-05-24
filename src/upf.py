@@ -912,14 +912,15 @@ def deco_pf(ax,cnt=None,miller=[0,0,0],
     ax.plot([0.97,1.00],[0.0,0.0],'k-')
 
     ## pole
-    s='('
-    for i in range(len(miller)):
-        if miller[i]<0: h = r'\bar{%s}'%str(-1*miller[i])
-        else: h = '%s'%str(miller[i])
-        s='%s%s'%(s,h)
-    s='%s)'%s
-    s=r'$\mathbf{%s}$'%s
-    ax.text(0.6,-0.95,s,fontsize=12)
+    if iopt==0:
+        s='('
+        for i in range(len(miller)):
+            if miller[i]<0: h = r'\bar{%s}'%str(-1*miller[i])
+            else: h = '%s'%str(miller[i])
+            s='%s%s'%(s,h)
+        s='%s)'%s
+        s=r'$\mathbf{%s}$'%s
+        ax.text(0.6,-0.95,s,fontsize=12)
 
     ## circle
     x,y = __circle__()
@@ -1936,7 +1937,9 @@ class polefigure:
             mode='line',
             dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
             lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),**kwargs):
+            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
+            ideco_lev=True,
+            **kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
         Note that upf.polefigure.pf is deprecated and will be deleted soon.
@@ -2007,6 +2010,8 @@ class polefigure:
            Default is None. One can define levels of the contours.
         <transform>
            transformation matrix applied to the entire polycrystal aggregate.
+        <ideco_lev> True or False
+           switch to turn on or off the levels
 
         Returns
         -------
@@ -2235,14 +2240,22 @@ class polefigure:
                 #                 alpha=0.17*len(poles),
                 #                 markersize=2.0,zorder=100)
 
-                deco_pf(axs[i],cnts,miller[i],0,
+                if ideco_lev:
+                    ideco_opt=0
+                else:
+                    ideco_opt=1
+                deco_pf(axs[i],cnts,miller[i],ideco_opt,
                         iskip_last=False,ix=ix,iy=iy,mode=mode)
             if mode in ['dot']:
+                if ideco_lev:
+                    ideco_opt=0
+                else:
+                    ideco_opt=1
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
                 axs[i].scatter(x,y,**kwargs)
                 try:
-                    deco_pf(axs[i],None,miller[i],0,
+                    deco_pf(axs[i],None,miller[i],ideco_opt,
                             iskip_last=False,ix=ix,iy=iy,mode=mode)
                 except:
                     pass
@@ -2254,6 +2267,8 @@ class polefigure:
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
         """
+        Calculate minimum and maximum
+
         Arguments
         ---------
         nArray: ndarray that contains all pole figure nodes.
@@ -2469,9 +2484,14 @@ class polefigure:
         return np.array(XY),fig
 
 def cells_pf(
-        pole_ca=[1,0,0],dph=7.5,
-        dth =7.5,csym=None,cang=[90.,90.,90.],
-        cdim=[1.,1.,1.],grains=None,n_rim=2,transform=np.identity(3)):
+        pole_ca=[1,0,0],
+        dph=7.5,
+        dth =7.5,
+        csym=None,
+        cang=[90.,90.,90.],
+        cdim=[1.,1.,1.],
+        grains=None,n_rim=2,
+        transform=np.identity(3)):
     """
     Creates cells gridded in the dimension of (nphi, ntheta)
     Given the delta x and delt y (dm, dn), each pole's
@@ -2524,10 +2544,8 @@ def cells_pf(
             ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
             amat=amat.T ## sa<-ca
-            if (transform==np.identity(3)).all():
-                pass
-            else:
-                amat=np.dot(transform,amat)
+            if (transform==np.identity(3)).all():pass
+            else:amat=np.dot(transform,amat)
 
             for j in range(len(poles_ca)):
                 poles_sa[i,j,:] = np.dot(amat,poles_ca[j])
@@ -2536,7 +2554,7 @@ def cells_pf(
     poles_sa  = poles_sa.reshape( (len(grains)*len(poles_ca),3))
     poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
 
-    ## Full Sphere
+    ## Full Sphere (-pi, +pi) and (0, pi)
     x = np.arange(-180., 180.+tiny, dth)
     y = np.arange(   0., 180.+tiny, dph)
     nx, ny = int(360./dth), int(180./dph)
