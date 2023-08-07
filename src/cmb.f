@@ -1,14 +1,27 @@
       program cmb
       implicit none
-      character(len=256) fin
+      character(len=256) fin, fout
       integer ngr,i,j
       parameter(ngr=20000)
       real*8 px(ngr,4)
 
-      fin='/Users/youngung/repo/mymtex_analysis/mooyeong/eddq.odf'
+
+!     fin='/Users/youngung/repo/mymtex_analysis/mooyeong/eddq.odf'
+!     fin='/Users/youngung/repo/mtexscripts/steglich/Mg10Gd.odf'
+
+      if (iargc().ne.2) then
+         write(*,*)'requires 2 inputs (fin and fout)'
+         stop -1
+      endif
+
+      call get_command_argument(1,fin)
+      fin=trim(fin)
+      call get_command_argument(2,fout)
+      fout=trim(fout)
+
       call weighted_grains(ngr,fin,px)
 
-      open(1,file='dum',status='unknown')
+      open(1,file=fout,status='unknown')
       write(1,*)
       write(1,*)
       write(1,*)

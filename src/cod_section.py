@@ -275,8 +275,10 @@ def main(phi1=None, phi2=None, phi=None,
     nnx = abs(mx - nx) / dang #nnx grid
     nny = abs(my - ny) / dang #nny grid
 
+    print('nnx,nny:',nnx,nny)
+
     # The cubic cell in the Euler space
-    f = np.zeros((nnx, nny))
+    f = np.zeros((int(nnx), int(nny)))
     print('nnx, nny, and f.shape', nnx, nny, f.shape)
     ## -------------------------------------------------------- ##
 
@@ -298,7 +300,7 @@ def main(phi1=None, phi2=None, phi=None,
 
         if abs(zvalue/resolution - int(zvalue/resolution))==0:
             zvalue = zvalue - tiny
-            
+
         # cell indicies
         ix = int(xvalue / resolution)
         iy = int(yvalue / resolution)
@@ -972,7 +974,7 @@ def to909090(gr):
     #print len(mats)
 
     eul_angs = []
-    n = 0 
+    n = 0
     for i in range(len(mats)):
         angs = euler(a=mats[i], echo=False)
         if all(angs[k]<=90. for k in range(3)) and \
@@ -988,7 +990,7 @@ def to909090(gr):
                        eul_angs[i][2]])
 
     temp_gr = np.around(temp_gr, decimals=3)
-        
+
     temp_gr = unique2d(np.array(temp_gr))
 
     new_gr = []
@@ -1003,6 +1005,3 @@ def unique2d(x):
     y = x.view(dtype=dt).squeeze()
     u, idx, inv = np.unique(y, return_index=True, return_inverse=True)
     return u
-
-
-
