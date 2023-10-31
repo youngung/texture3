@@ -159,6 +159,8 @@ else:
     is_joblib = True
     from joblib import Parallel, delayed
 
+## removing joblib
+is_joblib=False
 pi   = math.pi;
 cos  = math.cos; sin  = math.sin
 

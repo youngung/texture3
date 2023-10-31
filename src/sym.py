@@ -287,10 +287,10 @@ def ortho():
     niter=len(H)
 
     pi=np.pi
-    cp=cos(pi)
-    sp=sin(pi)
+    cp=np.cos(pi)
+    sp=np.sin(pi)
     # 180 deg rotation around (001)
-    h=np.zeros(3,3)
+    h=np.zeros((3,3))
     h[0,0]=cp
     h[1,1]=cp
     h[2,2]=1.
