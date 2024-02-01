@@ -831,7 +831,7 @@ C *************************************************************************
 C *** INVERTS A MATRIX USING LU DECOMPOSITION
 
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION A(N,N),Y(N,N),INDX(N)      ! MAY CHOKE SOME COMPILERS
+      DIMENSION A(N,N),Y(N,N),INDX(N)
 C     DIMENSION A(5,5),Y(5,5),INDX(5)
 
 
@@ -890,7 +890,7 @@ C *************************************************************************
 C *** SOLVES A*X=B USING LU DECOMPOSITION
 
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION A(N,N),B(N),INDX(N)      ! MAY CHOKE SOME COMPILERS
+      DIMENSION A(N,N),B(N),INDX(N)
 C     DIMENSION A(5,5),B(5),INDX(5)
 
       CALL LUDCMP(A,N,N,INDX,D,ISINGULAR)
@@ -907,7 +907,7 @@ C ***********************************************************
 
 C *** SOLVES A*X=B USING LU DECOMPOSITION
 
-C      DIMENSION A(N,N),B(N),INDX(N)      ! MAY CHOKE SOME COMPILERS
+C      DIMENSION A(N,N),B(N),INDX(N)
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION A(25,25),B(25),INDX(25)
 

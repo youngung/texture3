@@ -2063,7 +2063,7 @@ class polefigure:
         N=[]
         t0=time.time()
 
-        if mode in ['line','contour']:
+        if mode in ['line','contour','fill']:
             if is_joblib and len(poles)>1:
                 rst=Parallel(n_jobs=len(poles)) (
                     delayed(cells_pf)(
@@ -2189,7 +2189,7 @@ class polefigure:
 
         for i in range(len(poles)):
 
-            if mode in ['line','contour']:
+            if mode in ['line','contour','fill']:
                 if type(levels)==type(None):
                     if lev_norm_log:
                         ## To prevent log (0) -> np.nan
