@@ -694,7 +694,8 @@ def main(odf, ngrain, outputfile, iplot=True, irandom=False):
       iplot =True : flag for plotting
       irandom=True
     """
-    import upf,time
+    from TX import upf
+    import time
     import matplotlib.pyplot as plt
     temp = RVE(ngrain=ngrain, odf=odf, cmbfile=outputfile)
 

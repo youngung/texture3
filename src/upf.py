@@ -891,8 +891,8 @@ def deco_pf(ax,cnt=None,miller=[0,0,0],
         for i in range(nlev):
             cc = tcolors[i][0][0:3]
 
-            x=[1.30,1.37]
-            y=[1. - i * 0.2, 1. - i * 0.2]
+            x=[1.32,1.39]
+            y=[1. - i * 0.25, 1. - i * 0.25]
 
             if not(iskip_last) and i==nlev-1 and mode=='line':
                 ax.plot((x[0]+x[1])/2.,(y[0]+y[1])/2.,
@@ -904,33 +904,33 @@ def deco_pf(ax,cnt=None,miller=[0,0,0],
             if clev[i]<10: s='  %4.2f'%clev[i]
             else:          s='%5.2f'%clev[i]
 
-            ax.text(x=1.44, y= 1. - i*0.2 - 0.05,
-                    s=s,fontsize=4.*fact)
+            ax.text(x=1.44, y= 1. - i*0.25 - 0.05,
+                    s=s,fontsize=4.5*fact)
 
-    ## axis label/    ## Ticks
-    ax.text(1.14,0. ,ix,va='center',ha='center')
-    ax.text(0. ,1.14,iy,va='center',ha='center')
-    ax.plot([0.0,0.0], [0.97,1.00],'k-')
-    ax.plot([0.97,1.00],[0.0,0.0],'k-')
+    # ## axis label/    ## Ticks
+    # ax.text(1.14,0. ,ix,va='center',ha='center')
+    # ax.text(0. ,1.14,iy,va='center',ha='center')
+    # ax.plot([0.0,0.0], [0.97,1.00],'k-')
+    # ax.plot([0.97,1.00],[0.0,0.0],'k-')
 
-    ## pole
-    if iopt==0:
-        s='('
-        for i in range(len(miller)):
-            if miller[i]<0: h = r'\bar{%s}'%str(-1*miller[i])
-            else: h = '%s'%str(miller[i])
-            s='%s%s'%(s,h)
-        s='%s)'%s
-        s=r'$\mathbf{%s}$'%s
-        ax.text(0.6,-0.95,s,fontsize=12)
+    # ## pole
+    # if iopt==0:
+    #     s='('
+    #     for i in range(len(miller)):
+    #         if miller[i]<0: h = r'\bar{%s}'%str(-1*miller[i])
+    #         else: h = '%s'%str(miller[i])
+    #         s='%s%s'%(s,h)
+    #     s='%s)'%s
+    #     s=r'$\mathbf{%s}$'%s
+    #     ax.text(0.6,-0.95,s,fontsize=12)
 
-    ## circle
-    x,y = __circle__()
-    ax.plot(x,y,'k-')
-    ax.set_axis_off()
-    ax.set_xlim(-1.1,1.4)
-    ax.set_ylim(-1.1,1.4)
-    ax.set_aspect('equal')
+    # ## circle
+    # x,y = __circle__()
+    # ax.plot(x,y,'k-')
+    # ax.set_axis_off()
+    # ax.set_xlim(-1.1,1.4)
+    # ax.set_ylim(-1.1,1.4)
+    # ax.set_aspect('equal')
 
 
 def projection(pole=None, agrain=None):
@@ -2006,7 +2006,7 @@ class polefigure:
         <mode>
            Contour model: 'line' or 'fill' or 'dot'
         <ilev>
-           level option: 0 commonly contour levels for all poles generated
+           level option: 0 common contour levels for all poles generated
                          1 individual levels applied for individual poles
         <levels>
            Default is None. One can define levels of the contours.
@@ -2246,8 +2246,24 @@ class polefigure:
                     ideco_opt=0
                 else:
                     ideco_opt=1
-                deco_pf(axs[i],cnts,miller[i],ideco_opt,
-                        iskip_last=False,ix=ix,iy=iy,mode=mode)
+
+                if ilev==1 or (ilev==0 and i==len(axs)-1):
+                    deco_pf(axs[i],cnts,miller[i],ideco_opt,
+                            iskip_last=False,ix=ix,iy=iy,mode=mode)
+
+
+
+                ## pole
+                s='('
+                for k in range(len(miller[i])):
+                    if miller[i][k]<0: h = r'\bar{%s}'%str(-1*miller[i][k])
+                    else: h = '%s'%str(miller[i][k])
+                    s='%s%s'%(s,h)
+                s='%s)'%s
+                s=r'$\mathbf{%s}$'%s
+                #s=rf'${s}$'
+                axs[i].text(0.6,-0.95,s,fontsize=12)
+
             if mode in ['dot']:
                 if ideco_lev:
                     ideco_opt=0
@@ -2261,6 +2277,23 @@ class polefigure:
                             iskip_last=False,ix=ix,iy=iy,mode=mode)
                 except:
                     pass
+
+
+
+            ## circle
+            _x_,_y_ = __circle__()
+            axs[i].plot(_x_,_y_,'k-')
+            axs[i].set_axis_off()
+            axs[i].set_xlim(-1.1,1.4)
+            axs[i].set_ylim(-1.1,1.4)
+            axs[i].set_aspect('equal')
+
+            ## axis label/    ## Ticks
+            axs[i].text(1.15,0. ,ix,va='center',ha='center')
+            axs[i].text(0. ,1.15,iy,va='center',ha='center')
+            axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
+            axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
+
         try:
             return fig
         except:
