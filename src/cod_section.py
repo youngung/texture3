@@ -149,8 +149,8 @@ def main(phi1=None, phi2=None, phi=None,
     factor = 90. #common factor
     mx = np.array([max(gr[0]), max(gr[1]), max(gr[2])])
     mn = np.array([min(gr[0]), min(gr[1]), min(gr[2])])
-    print('mx:', mx)
-    print('mn:', mn)
+    # print('mx:', mx)
+    # print('mn:', mn)
     mx = np.array(list(map(round, mx/factor)), dtype='int') * factor
     mn = np.array(list(map(round, mn/factor)), dtype='int') * factor
 
@@ -275,11 +275,11 @@ def main(phi1=None, phi2=None, phi=None,
     nnx = abs(mx - nx) / dang
     nny = abs(my - ny) / dang
     nnx,nny=int(nnx),int(nny)
-    print('nnx,nny:',nnx,nny)
+    if echo: print('nnx,nny:',nnx,nny)
 
     # The cubic cell in the Euler space
     f = np.zeros((nnx, nny))
-    print('nnx, nny, and f.shape', nnx, nny, f.shape)
+    if echo: print('nnx, nny, and f.shape', nnx, nny, f.shape)
     ## -------------------------------------------------------- ##
 
     ## Assigns the volume fraction to each of the cubic celll - ##

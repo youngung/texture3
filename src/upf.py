@@ -905,7 +905,7 @@ def deco_pf(ax,cnt=None,miller=[0,0,0],
             else:          s='%5.2f'%clev[i]
 
             ax.text(x=1.44, y= 1. - i*0.25 - 0.05,
-                    s=s,fontsize=4.5*fact)
+                    s=s,fontsize=3.5*fact)
 
     # ## axis label/    ## Ticks
     # ax.text(1.14,0. ,ix,va='center',ha='center')
