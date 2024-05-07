@@ -9,7 +9,7 @@ eul = euler.euler
 def __inv__(a):
     """
     Returns the inverse matrix of A
-    
+
     *Note:
        Matrix a should be np.array
     """
@@ -74,7 +74,7 @@ def fibr(filename='texture/500.tex'):
         else: grains.append([])
 
         if len(lines[iline])<2: print('EOF'); break
-        
+
         for i in range(4):
             cwl = lines[iline]
             iline = iline + 1
@@ -88,7 +88,7 @@ def fibr(filename='texture/500.tex'):
             iline = iline + 1
             pass
         iblock = iblock + 1
-                
+
     nblock = iblock
     return grains
     #return lines
@@ -141,7 +141,7 @@ def grid(phi1 = None, phi = None, phi2 = None, pmx = [180,90,90],
     for i in range(3):
         if phi_[i] == None:
             inon = inon + 1
-    
+
     if inon!=2:
         print('Only two of angles should be None')
         print('You must give one of three angles')
@@ -152,31 +152,39 @@ def grid(phi1 = None, phi = None, phi2 = None, pmx = [180,90,90],
 
     inctyp = []
 
-    for i in range(3):
-        inctyp.append(type(pmx[i]/inc))
-    
-    if any(inctyp[i].__name__!='int' for i in range(len(inctyp))):
-        print('increment does not produce a integer grid')
-        print('consider to change this')
+    # print('inc:',inc)
+    # for i in range(3):
+    #     inctyp.append(type(pmx[i]/inc))
+    #     print('pmx[i]:',pmx[i])
+    #     print('pmx[i]/inc:',pmx[i]/inc)
+
+    # print('pmx:',pmx)
+
+    # print('inctyp:',inctyp)
+
+    # if any(inctyp[i].__name__!='int' for i in range(len(inctyp))):
+    #     print('inctyp[i]:',inctyp[i])
+    #     print('increment does not produce an integer grid')
+    #     print('consider to change this')
 
     if phi1!=None:
         " x: phi2, y: phi"
-        for i in range(pmx[1]/inc + 1): 
-            for j in range(pmx[2]/inc +1): 
+        for i in range(int(pmx[1]/inc) + 1):
+            for j in range(int(pmx[2]/inc) +1):
                 xyz.append([phi1, i*inc, j*inc]) #phi1, phi, phi2
         return xyz
 
     if phi2!=None:
         " x: phi1, y: phi"
-        for i in range(pmx[0]/inc + 1):
-            for j in range(pmx[1]/inc + 1):
+        for i in range(int(pmx[0]/inc) + 1):
+            for j in range(int(pmx[1]/inc) + 1):
                 xyz.append([i*inc, j*inc, phi2])
         return xyz
 
     if phi!=None:
         " x: phi1, y: phi2"
-        for i in range(pmx[0]/inc + 1):
-            for j in range(pmx[2]/inc + 1):
+        for i in range(int(pmx[0]/inc) + 1):
+            for j in range(int(pmx[2]/inc) + 1):
                 xyz.append([i*inc, phi, j*inc])
         return xyz
 
@@ -197,8 +205,8 @@ def neighbours(mis, grains, xyz):
     Provided the coordinate of a point,
     returns certain grains which are within
     the misorientation width
-    
-    mis = misorientation 
+
+    mis = misorientation
     grains = grains
     xyz = origion
     """
@@ -224,7 +232,7 @@ def __a2i__(ang=5.,inc = 5,pm=90.):
     """
     ang = int(ang)
     inc = int(inc)
-    if ang>pm: 
+    if ang>pm:
         print('Your angle is beyond the maximum')
         raise IOError
 #    if ang==pm:
@@ -261,11 +269,11 @@ class distr:
         """
         ng = len(grains)
         pmx = [360., 90., 90.]
-        
+
         self.ODF = np.resize((0.),(__a2i__(pmx[0],inc=inc,pm=pmx[0])+1,
                               __a2i__(pmx[1],inc=inc,pm=pmx[1])+1,
                               __a2i__(pmx[2],inc=inc,pm=pmx[2])+1))
-        
+
         print(len(self.ODF))
         print(len(self.ODF[0]))
         print(len(self.ODF[0][0]))
@@ -285,7 +293,7 @@ class distr:
                        __a2i__(grains[i][2], inc=inc, pm=pmx[2]+inc)]
 
             corners = corner8(cph_ind)
-            
+
             if grains[i][0]==pmx[0]: grains[i][0]=grains[i][0]-0.00001
             if grains[i][1]==pmx[1]: grains[i][1]=grains[i][1]-0.00001
             if grains[i][2]==pmx[2]: grains[i][2]=grains[i][2]-0.00001
@@ -293,11 +301,11 @@ class distr:
 
 
 
-            
+
     def write(self, phi1=None, phi=None, phi2=None, filename='od_section.out', inc=5):
         """
         Provided one of the Euler angles,
-        section of OD is given and written into the file 
+        section of OD is given and written into the file
         whose name is given in the current working directory
         """
         FILE = open(filename, 'w')
@@ -333,7 +341,7 @@ class distr:
                             FILE.writelines('%8.3f '%(self.ODF[i][ind][j]))
                         FILE.writelines('\n')
                 if phi2!=None:
-                    FILE.writelines(' ** OD section of phi2 = %4i \n'%(phi2))                    
+                    FILE.writelines(' ** OD section of phi2 = %4i \n'%(phi2))
                     """
                     x=phi1, y=phi
                     """
@@ -346,7 +354,7 @@ class distr:
         # temp = ODF[0][0][0] + ODF[-1][0][0]
         # ODF[0][0][0] = temp
         # ODF[-1][0][0] = temp
-        
+
         # temp = ODF[0][1][0] + ODF[-1][1][0]
         # ODF[0][1][0] = temp
         # ODF[-1][0][0] = temp
@@ -355,7 +363,7 @@ class distr:
 
         # temp = ODF[0][-1][0] +ODF[0][0][0]
         # ODF[0][-1][0] = temp
-        # ODF[0][0][0] = temp 
+        # ODF[0][0][0] = temp
 
 
 
@@ -400,13 +408,13 @@ class sect:
     Provided the texture and the list of arguments,
     the grided ODF section is written down to a file.
     """
-    def __init__(self, filename='texture/500.tex', 
-                 iblock=None, phi1=None, phi=None, phi2=None, 
+    def __init__(self, filename='texture/500.tex',
+                 iblock=None, phi1=None, phi=None, phi2=None,
                  misrad=15., grid_ang=5, pmx = [180,90,90], fout='od_section.out'):
         """
         Arguments:
             phi1, phi, phi2
-            iblock : id of block in case you have multi blocks in 
+            iblock : id of block in case you have multi blocks in
                      the TEXTURE file
             misrad : radius of misorientation
                      The radius of the circle in which the interpolation is performed
@@ -464,15 +472,19 @@ class sect:
         P    = self.pmx[1]
         p2   = self.pmx[2]
 
+        print('p1:',p1)
+        print('P :',P)
+        print('p2:',p2)
+
         FILE.writelines('** filename :'+self.fn+'\n')
 
         if phi1!=None:
             FILE.writelines('** Phi1 = %5.1f section ** \n'%(phi1))
             FILE.writelines(' x- axis : phi2, y-axis : phi \n')
-            
-            igrid = 0 
-            for i in range(p2/grid+1):
-                for j in range(P/grid +1):
+
+            igrid = 0
+            for i in range(int(p2/grid)+1):
+                for j in range(int(P/grid) +1):
                     FILE.writelines('   %11.3e'%(xyz[igrid][3]))
                     igrid = igrid + 1
                 FILE.writelines('\n')
@@ -487,8 +499,8 @@ class sect:
             FILE.writelines(' x- axis : phi1, y-axis : phi2 \n')
 
             igrid = 0
-            for i in range(p1/grid + 1):
-                for j in range(p2/grid +1):
+            for i in range(int(p1/grid) + 1):
+                for j in range(int(p2/grid) +1):
                     FILE.writelines('   %11.3e'%(xyz[igrid][3]))
                     igrid = igrid + 1
                 FILE.writelines('\n')
@@ -503,8 +515,8 @@ class sect:
             FILE.writelines(' x- axis : phi1, y-axis : phi \n')
 
             igrid = 0
-            for i in range(p1/grid + 1):
-                for j in range(P/grid + 1):
+            for i in range(int(p1/grid) + 1):
+                for j in range(int(P/grid) + 1):
                     FILE.writelines('   %11.3e'%(xyz[igrid][3]))
                     igrid = igrid + 1
                 FILE.writelines('\n')

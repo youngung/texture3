@@ -127,12 +127,10 @@ def main(phi1=None, phi2=None, phi=None,
     nseg = 3
     """
     gr = to90(gr)
-    # return gr
 
     pi = math.pi
     rad = pi / 180.
-    cos = math.cos
-    sin = math.sin
+    cos = math.cos; sin = math.sin
     dang = resolution
     ngrain = len(gr)
     gr0 = gr.copy()
@@ -147,10 +145,12 @@ def main(phi1=None, phi2=None, phi=None,
     # gr = self.gr.transpose() #phi1, phi, phi2, volume fraction
 
     ## Boundary of the Euler space in which the COD is sampled. ##
-    ## 90 is assumed to be common factor for the Euler space
+    ## 90 is assumed to be the common factor for the Euler space.
     factor = 90. #common factor
     mx = np.array([max(gr[0]), max(gr[1]), max(gr[2])])
     mn = np.array([min(gr[0]), min(gr[1]), min(gr[2])])
+    print('mx:', mx)
+    print('mn:', mn)
     mx = np.array(list(map(round, mx/factor)), dtype='int') * factor
     mn = np.array(list(map(round, mn/factor)), dtype='int') * factor
 
@@ -165,7 +165,7 @@ def main(phi1=None, phi2=None, phi=None,
     ## -------------------------------------------------------- ##
 
     ## spread poles ------------------------------------------- ##
-    w = resolution/10. #spreading angle
+    w = resolution #/10. #spreading angle
     if nseg==1:pass
     else:
         ## Multiplication of grains ------------------- ##
@@ -237,7 +237,7 @@ def main(phi1=None, phi2=None, phi=None,
             if echo==True:print('section at phi2 = %4.1f'%phi2)
             x_axis = gr[0] #phi1
             y_axis = gr[1] #phi
-            z_axis = gr[2]
+            z_axis = gr[2] #phi2
 
             xmax = mx[0]; xmin = mn[0]
             ymax = mx[1]; ymin = mn[1]
@@ -258,27 +258,27 @@ def main(phi1=None, phi2=None, phi=None,
 
     factor = 90.
 
+    # for phi2!=None, x_axis = phi1, y_axis = phi, z_axis = phi2
+
     mx = round(max(x_axis) / factor) * factor
     nx = round(min(x_axis) / factor) * factor
     my = round(max(y_axis) / factor) * factor
     ny = round(min(y_axis) / factor) * factor
     mz = round(max(z_axis) / factor) * factor
     nz = round(min(z_axis) / factor) * factor
+
     if echo==True:
         print('x: %3.1f ~ %3.1f'%(nx, mx))
         print('y: %3.1f ~ %3.1f'%(ny, my))
         print('z: %3.1f ~ %3.1f'%(nz, mz))
 
-    # if (z + resolution/2.) > mz: raise IOError
-    # if (z - resolution/2.) < nz: raise IOError
-
-    nnx = abs(mx - nx) / dang #nnx grid
-    nny = abs(my - ny) / dang #nny grid
-
+    nnx = abs(mx - nx) / dang
+    nny = abs(my - ny) / dang
+    nnx,nny=int(nnx),int(nny)
     print('nnx,nny:',nnx,nny)
 
     # The cubic cell in the Euler space
-    f = np.zeros((int(nnx), int(nny)))
+    f = np.zeros((nnx, nny))
     print('nnx, nny, and f.shape', nnx, nny, f.shape)
     ## -------------------------------------------------------- ##
 
@@ -289,15 +289,12 @@ def main(phi1=None, phi2=None, phi=None,
         zvalue = z_axis[n]
         vf = gr0[n][3]
 
-
-        tiny = 10e-10
+        tiny = 1e-10
         # what if the value/resolution hits the boundary??
         if abs(xvalue/resolution - int(xvalue/resolution))==0:
             xvalue = xvalue - tiny
-
         if abs(yvalue/resolution - int(yvalue/resolution))==0:
             yvalue = yvalue - tiny
-
         if abs(zvalue/resolution - int(zvalue/resolution))==0:
             zvalue = zvalue - tiny
 
@@ -311,29 +308,21 @@ def main(phi1=None, phi2=None, phi=None,
             zdiff = z + resolution/2. - mz
             if zvalue < nz + zdiff or zvalue > z - resolution / 2.:
                 f[ix, iy] = f[ix, iy] + vf
-
         elif z - resolution/2. < nz:
             zdiff = nz - (z - resolution/2.)
             if zvalue > mz - zdiff or zvalue < z + resolution / 2.:
                 f[ix, iy] = f[ix, iy] + vf
-
-        ##
-        ## ---------------------------------- ##
-
         ## ---------------------------------- ##
         else:
             if abs(zvalue - z) < resolution/2. :
                 f[ix, iy] = f[ix, iy] + vf
             else: pass
-
-        ## ----------------------------------##
     ## -------------------------------------------------------- ##
 
 
     ### Calculation of the cubic weight if were random ###
+
     ### Normalization ###
-
-
     if phi1!=None:
         for m in range(len(f)): #phi2
             for n in range(len(f[m])): #phi
@@ -394,10 +383,10 @@ def main(phi1=None, phi2=None, phi=None,
                 f[m,n] = f[m,n] / cube_vol * FUL / wgt
 
     elif phi2!=None:
-        for m in range(len(f)):
-            for n in range(len(f[m])):
+        for m in range(len(f)): # phi1
+            for n in range(len(f[m])): # Phi
                 ## cube volume ----------------------------- ##
-                dp1 = resolution * rad
+                dp1 = resolution * rad ## to radian
                 dp2 = resolution * rad
                 current_ph = (n + 0.5) * rad * resolution
                 ph_up = current_ph + rad * resolution * 0.5
@@ -510,7 +499,6 @@ def main(phi1=None, phi2=None, phi=None,
     x_lin = np.arange(xmin, xmax + tiny, dx)
     y_lin = np.arange(ymin, ymax + tiny, dy)
     x, y = np.meshgrid(x_lin, y_lin)
-#    x, y = np.meshgrid(y_lin, x_lin)
     axt = fig.add_axes((0.15, 0.05, 0.75, 0.80),aspect='equal')#add_subplot(111,)
     ax = axt.twiny()
 
@@ -521,22 +509,22 @@ def main(phi1=None, phi2=None, phi=None,
 
     #nodes = blur_image(nodes,3)
 
-    if levels==None:
-        cnt = ax.contour(
-            x,y, nodes.T, color=('k',), linewidth=3.)
-        # cnt = ax.contourf(
-        #     x,y, nodes.T)#, cmap = plt.cm.cmap_d['gray_r'])
-    elif levels!=None:
-        cnt = ax.contour(
-            x,y, nodes.T, levels, color=('k',), linewidth=3.)
-        # cnt = ax.contourf(
-        #     x,y, nodes.T)#, levels, cmap = plt.cm.cmap_d['gray_r'])
+    if type(levels)==type(None):
+        #cnt = ax.contour(
+        #    x,y, nodes.T, color=('k',), linewidth=3.)
+        cnt = ax.contourf(
+            x,y, nodes.T)#, cmap = plt.cm.cmap_d['gray_r'])
+    elif type(levels)!=type(None):
+        #cnt = ax.contour(
+        #    x,y, nodes.T, levels, color=('k',), linewidth=3.)
+        cnt = ax.contourf(
+            x,y, nodes.T, levels)#, cmap = plt.cm.cmap_d['gray_r'])
 
     if ixlabel:ax.set_xlabel(xlabel, dict(fontsize=20))
     if iylabel:axt.set_ylabel(ylabel, dict(fontsize=20))
     level = cnt._levels
 
-    ax.legend()
+    #ax.legend()
 
     ## x and y limit, and level plotting ------- ##
     ax.set_xlim(xmin, xmax);
@@ -563,8 +551,9 @@ def main(phi1=None, phi2=None, phi=None,
         # ax.set_yticks(np.arange(xmin, xmax+0.001, 15.))
         # ax.set_xticks(np.arange(ymin, ymax+0.001, 15.))
 
-    plt.clabel(cnt, inline=False, fontsize=15.,
-               fmt = '%4.1f', inline_spacing=1. )
+    if False:
+        plt.clabel(cnt, inline=False, fontsize=15.,
+                   fmt = '%4.1f', inline_spacing=1. )
 
     # tcolors = cnt.tcolors
     # for i in range(len(tcolors)):
@@ -574,7 +563,7 @@ def main(phi1=None, phi2=None, phi=None,
     if echo==True: print('levels: ', level)
     ## ------------------------------------------ ##
 
-    return x, y, nodes, ax, axt, level
+    return x, y, nodes, ax, axt, level, cnt
 
 def gauss_kern(size, sizey=None):
     """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -715,18 +704,18 @@ def cod(phi1=None, phi2=None, phi=None,
     mxlev = 0.
     for v in zlin:
         print('value = ' , v)
-        if phi!=None: x, y, nodes, ax, axt, level = main(
+        if phi!=None: x, y, nodes, ax, axt, level, cnt = main(
             phi1=phi1, phi2=phi2, phi=v,
             resolution=resolution, gr=gr0,
             nseg=nseg, ismooth=ismooth, ifig=nplot,
             ireverse=True,echo=False)
-        elif phi1!=None: x, y, nodes, ax, axt, level = main(
+        elif phi1!=None: x, y, nodes, ax, axt, level, cnt = main(
             phi1=v, phi2=phi2, phi=phi,
             resolution=resolution, gr=gr0,
             nseg=nseg, ismooth=ismooth, ifig=nplot,
             ireverse=True,echo=False)
 
-        elif phi2!=None:x, y, nodes, ax, axt, level = main(
+        elif phi2!=None:x, y, nodes, ax, axt, level, cnt = main(
             phi1=phi1, phi2=v, phi=phi,
             resolution=resolution, gr=gr0,
             nseg=nseg, ismooth=ismooth, ifig=nplot,
@@ -750,7 +739,7 @@ def cod(phi1=None, phi2=None, phi=None,
         print('value = ' , v)
         if phi!=None:
             lang = r'\Phi'
-            x, y, nodes, ax, axt, level = main(
+            x, y, nodes, ax, axt, level, cnt = main(
                 phi1=phi1, phi2=phi2, phi=v,
                 resolution=resolution, gr=gr0,
                 nseg=nseg, ismooth=ismooth, ifig=nplot,
@@ -758,7 +747,7 @@ def cod(phi1=None, phi2=None, phi=None,
 
         elif phi1!=None:
             lang = r'\phi_1'
-            x, y, nodes, ax, axt, level = main(
+            x, y, nodes, ax, axt, level, cnt = main(
                 phi1=v, phi2=phi2, phi=phi,
                 resolution=resolution, gr=gr0,
                 nseg=nseg, ismooth=ismooth, ifig=nplot,
@@ -766,7 +755,7 @@ def cod(phi1=None, phi2=None, phi=None,
 
         elif phi2!=None:
             lang = r'\phi_2'
-            x, y, nodes, ax, axt, level = main(
+            x, y, nodes, ax, axt, level, cnt = main(
                 phi1=phi1, phi2=v, phi=phi,
                 resolution=resolution, gr=gr0,
                 nseg=nseg, ismooth=ismooth, ifig=nplot,
@@ -933,7 +922,7 @@ if __name__ == '__main__':
     ## RVE input (Following the VPSC texture file format)
     gr = np.loadtxt(inputfile, skiprows=4)
 
-    x,y, nodes, ax, axt, level = main(
+    x,y, nodes, ax, axt, level, cnt = main(
         phi1=phi1, phi2=phi2, phi=phi,
         resolution=resolution, gr=gr,
         nseg=1, ismooth=False)
@@ -954,9 +943,6 @@ def to909090(gr):
     Reduce a grain in the full range angules to 90x90x90 cube
     """
 
-    # if gr[0]<0.:
-    #     gr[0] = 360 + gr[0]
-
     from .sym import __mmm__ as mmm
     from .sym import cubic
     sam = mmm() # orthorhombic sample symmetry
@@ -972,7 +958,6 @@ def to909090(gr):
             mats.append(nnewa)
 
     #print len(mats)
-
     eul_angs = []
     n = 0
     for i in range(len(mats)):
@@ -990,9 +975,7 @@ def to909090(gr):
                        eul_angs[i][2]])
 
     temp_gr = np.around(temp_gr, decimals=3)
-
-    temp_gr = unique2d(np.array(temp_gr))
-
+    # temp_gr = unique2d(np.array(temp_gr))
     new_gr = []
     for i in range(len(temp_gr)):
         dgr = [temp_gr[i][0],temp_gr[i][1],temp_gr[i][2],gr[-1]/len(temp_gr)]
