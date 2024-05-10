@@ -957,7 +957,6 @@ def to909090(gr):
             nnewa = np.dot(crm[j], dum)  # H_ca ca<-sa H_sa
             mats.append(nnewa)
 
-    #print len(mats)
     eul_angs = []
     n = 0
     for i in range(len(mats)):
@@ -965,23 +964,26 @@ def to909090(gr):
         if all(angs[k]<=90. for k in range(3)) and \
            all(angs[k]>=0.  for k in range(3)):
             n = n + 1
-            #print angs
             eul_angs.append(angs)
 
-    temp_gr = []
+    temp_gr=np.zeros((len(eul_angs),3))
     for i in range(len(eul_angs)):
-        temp_gr.append([eul_angs[i][0],
-                       eul_angs[i][1],
-                       eul_angs[i][2]])
+        temp_gr[i]=eul_angs[i][0],eul_angs[i][1],eul_angs[i][2]
 
-    temp_gr = np.around(temp_gr, decimals=3)
+    # temp_gr = np.around(temp_gr, decimals=8)
     # temp_gr = unique2d(np.array(temp_gr))
-    new_gr = []
-    for i in range(len(temp_gr)):
-        dgr = [temp_gr[i][0],temp_gr[i][1],temp_gr[i][2],gr[-1]/len(temp_gr)]
-        new_gr.append(dgr)
-    return np.array(new_gr)
 
+    if len(temp_gr)>0:
+        new_gr=np.zeros((temp_gr.shape[0],len(gr)))
+        for icol in range(3):
+            new_gr[:,icol]=temp_gr[:,icol]
+        new_gr[:,3]=gr[3]/temp_gr.shape[0]
+        for icol in range(3,len(gr)):
+            new_gr[:,icol]=gr[icol]
+
+        return new_gr
+    else:
+        return np.array([])
 
 def unique2d(x):
     dt = np.dtype([('a', x.dtype), ('b', x.dtype), ('c', x.dtype)])
