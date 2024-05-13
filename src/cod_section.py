@@ -128,8 +128,7 @@ def main(phi1=None, phi2=None, phi=None,
     """
     gr = to90(gr)
 
-    pi = math.pi
-    rad = pi / 180.
+    pi = math.pi; rad = pi / 180.
     cos = math.cos; sin = math.sin
     dang = resolution
     ngrain = len(gr)
@@ -140,126 +139,93 @@ def main(phi1=None, phi2=None, phi=None,
         print('***  number of grain: %i  ***'%ngrain)
         print('Total volume: %3.1f'%wgt)
 
-
-    # self.gr  # grains
-    # gr = self.gr.transpose() #phi1, phi, phi2, volume fraction
-
     ## Boundary of the Euler space in which the COD is sampled. ##
     ## 90 is assumed to be the common factor for the Euler space.
     factor = 90. #common factor
     mx = np.array([max(gr[0]), max(gr[1]), max(gr[2])])
     mn = np.array([min(gr[0]), min(gr[1]), min(gr[2])])
-    # print('mx:', mx)
-    # print('mn:', mn)
     mx = np.array(list(map(round, mx/factor)), dtype='int') * factor
     mn = np.array(list(map(round, mn/factor)), dtype='int') * factor
-
     if any(mx[i]==mn[i] for i in range(3)):
         raise IOError('Too narrow spectrum along one axis')
-
     if echo==True:
         print('max:  %3.1f %3.1f %3.1f'%(mx[0],mx[1],mx[2]))
         print('min:  %3.1f %3.1f %3.1f'%(mn[0],mn[1],mn[2]))
-
-
     ## -------------------------------------------------------- ##
-
     ## spread poles ------------------------------------------- ##
     w = resolution #/10. #spreading angle
-    if nseg==1:pass
-    else:
+    if nseg!=1:
         ## Multiplication of grains ------------------- ##
         temp = []
         for i in range(ngrain):
             rst = spread(eul=gr0[i], w=w, nseg=nseg)
             count = 0
             for n in range(len(rst)):
-                if rst[n][0]>=mn[0] and \
-                        rst[n][0]<=mx[0] and \
-                        rst[n][1]>=mn[1] and \
-                        rst[n][1]<=mx[1] and \
-                        rst[n][2]>=mn[2] and \
-                        rst[n][2]<=mx[2]:
+                if rst[n][0]>=mn[0] and rst[n][0]<=mx[0] and rst[n][1]>=mn[1] and \
+                   rst[n][1]<=mx[1] and rst[n][2]>=mn[2] and rst[n][2]<=mx[2]:
                     temp.append(rst[n])
                 else: count = count + 1
             if count!=0:
-                # print 'count: %i'%count
-                # print 'volume %5.3f'%(gr0[i][3]/nseg * count)
-                temp.append([gr0[i][0], gr0[i][1], gr0[i][2], \
-                                 gr0[i][3]/nseg*count])
+                dum=[]
+                for j in range(3):
+                    dum.append(gr0[i][j])
+                dum.append(gr0[i][3]/nseg*count)
+                for j in range(4,len(gr0[0])):
+                    dum.append(gr0[0][j])
+                temp.append(dum)
         gr = np.array(temp).transpose()
         ngrain = len(gr)
-
-        ## -------------------------------------------- ##
-    ## -------------------------------------------------------- ##
 
     ## -------------------------------------------------------- ##
     del_ph1 = (mx[0] - mn[0]) * rad
     del_ph  = cos(mx[1]* rad) - cos(mn[1] * rad)
     del_ph2 = (mx[2] - mn[2]) * rad
-
     FUL = abs(del_ph1 * del_ph * del_ph2)
-    if echo==True:
-        print('FULL INTEGRATION VALUE: %3.1f * pi * pi'%(FUL/pi/pi))
-
+    if echo==True: print('FULL INTEGRATION VALUE: %3.1f * pi * pi'%(FUL/pi/pi))
     ## -------------------------------------------------------- ##
 
     ## x, y, z axis insertion & rdi calculation --------------- ##
     if None in (phi1, phi2, phi):
         if phi1!=None:
             if echo==True:print('section at phi1 = %4.1f'%phi1)
-
             x_axis = gr[2] #phi2
             y_axis = gr[1] #phi
             z_axis = gr[0]
-
             xmax = mx[2]; xmin = mn[2]
             ymax = mx[1]; ymin = mn[1]
-
             z = phi1
             rdi = del_ph2 * del_ph * (resolution * rad)
-
         elif phi!=None:
             if echo==True:print('section at phi = %4.1f'%phi)
             x_axis = gr[0] #phi1
             y_axis = gr[2] #phi2
             z_axis = gr[1]
-
             xmax = mx[0]; xmin = mn[0]
             ymax = mx[2]; ymin = mn[2]
-
             z = phi
             rdi = del_ph1 * del_ph2 * cos(
                 (phi - resolution / 2.) * rad) - cos(
                 (phi + resolution / 2.) * rad)
-
         elif phi2!=None:
             if echo==True:print('section at phi2 = %4.1f'%phi2)
             x_axis = gr[0] #phi1
             y_axis = gr[1] #phi
             z_axis = gr[2] #phi2
-
             xmax = mx[0]; xmin = mn[0]
             ymax = mx[1]; ymin = mn[1]
-
             z = phi2
             rdi = del_ph1 * del_ph * (resolution * rad)
 
         rdi = abs(rdi)
-        rdi = rdi #/ FUL #= abs(del_ph1 * del_ph * del_ph2)
         if echo==True:print('rdi: %f'%rdi)
 
     else: raise IOError
     ## -------------------------------------------------------- ##
-
     ## The cubic cell maker (f) ------------------------------- ##
     dx = dang # grid angle along the x-axis
     dy = dang # grid angle along the y-axis
-
     factor = 90.
-
     # for phi2!=None, x_axis = phi1, y_axis = phi, z_axis = phi2
-
     mx = round(max(x_axis) / factor) * factor
     nx = round(min(x_axis) / factor) * factor
     my = round(max(y_axis) / factor) * factor
@@ -272,14 +238,14 @@ def main(phi1=None, phi2=None, phi=None,
         print('y: %3.1f ~ %3.1f'%(ny, my))
         print('z: %3.1f ~ %3.1f'%(nz, mz))
 
-    nnx = abs(mx - nx) / dang
-    nny = abs(my - ny) / dang
-    nnx,nny=int(nnx),int(nny)
+    nnx = int(abs(mx - nx) / dang)
+    nny = int(abs(my - ny) / dang)
     if echo: print('nnx,nny:',nnx,nny)
 
     # The cubic cell in the Euler space
-    f = np.zeros((nnx, nny))
-    if echo: print('nnx, nny, and f.shape', nnx, nny, f.shape)
+    f = np.zeros(                (nnx, nny))
+    t = np.zeros((gr0.shape[-1]-4,nnx, nny)) ## target quantity (including fraction and others)
+    if echo: print('nnx, nny, f.shape, and t.shape', nnx, nny, f.shape, t.shape)
     ## -------------------------------------------------------- ##
 
     ## Assigns the volume fraction to each of the cubic celll - ##
@@ -287,16 +253,13 @@ def main(phi1=None, phi2=None, phi=None,
         xvalue = x_axis[n]
         yvalue = y_axis[n]
         zvalue = z_axis[n]
-        vf = gr0[n][3]
 
+        vf = gr0[n][3]
         tiny = 1e-10
         # what if the value/resolution hits the boundary??
-        if abs(xvalue/resolution - int(xvalue/resolution))==0:
-            xvalue = xvalue - tiny
-        if abs(yvalue/resolution - int(yvalue/resolution))==0:
-            yvalue = yvalue - tiny
-        if abs(zvalue/resolution - int(zvalue/resolution))==0:
-            zvalue = zvalue - tiny
+        if abs(xvalue/resolution - int(xvalue/resolution))==0: xvalue = xvalue - tiny
+        if abs(yvalue/resolution - int(yvalue/resolution))==0: yvalue = yvalue - tiny
+        if abs(zvalue/resolution - int(zvalue/resolution))==0: zvalue = zvalue - tiny
 
         # cell indicies
         ix = int(xvalue / resolution)
@@ -317,11 +280,32 @@ def main(phi1=None, phi2=None, phi=None,
             if abs(zvalue - z) < resolution/2. :
                 f[ix, iy] = f[ix, iy] + vf
             else: pass
+
+
+        ## target quantity
+        icol=0
+        for i in range(4,gr0.shape[-1]):
+            q = gr0[n][i]
+            if z + resolution/2. > mz:
+                zdiff = z + resolution/2. - mz
+                if zvalue < nz + zdiff or zvalue > z - resolution / 2.:
+                    t[icol,ix, iy] = t[icol,ix, iy] + q
+            elif z - resolution/2. < nz:
+                zdiff = nz - (z - resolution/2.)
+                if zvalue > mz - zdiff or zvalue < z + resolution / 2.:
+                    t[icol,ix, iy] = t[icol,ix, iy] + q
+            ## ---------------------------------- ##
+            else:
+                if abs(zvalue - z) < resolution/2. :
+                    t[icol,ix, iy] = t[icol,ix, iy] + q
+                else: pass
+            icol=icol+1
+
+
+
+
     ## -------------------------------------------------------- ##
-
-
     ### Calculation of the cubic weight if were random ###
-
     ### Normalization ###
     if phi1!=None:
         for m in range(len(f)): #phi2
@@ -335,41 +319,30 @@ def main(phi1=None, phi2=None, phi=None,
                 dp = cos(ph_up) - cos(ph_down)
                 cube_vol = abs(dp1 * dp * dp2)
                 ## ----------------------------------------- ##
-
                 if cube_vol==0: raise IOError
-
                 f[m,n] = f[m,n] / cube_vol * FUL / wgt
-
     elif phi!=None:
         ## delta phi calculation
-
         ## cube volume ----------------------------- ##
         dp1 = resolution * rad
         dp2 = resolution * rad
-
         ##### phi is closer to the boudnary ----- #####
         if phi + resolution/2. > mz:
             diff = mz - phi
-
             ph_down = (phi - resolution/2.) * rad
             ph_up = mz * rad
             dp = cos(ph_up) - cos(ph_down)
-
             ph_down = nz * rad
             ph_up = (nz + (resolution/2. - diff)) * rad
             dp = dp + cos(ph_up) - cos(ph_down)
-
         elif phi - resolution/2. < nz:
             diff = phi - nz
-
             ph_down = (mz - (resolution/2. - diff)) * rad
             ph_up = mz * rad
             dp = cos(ph_up) - cos(ph_down)
-
             ph_down = nz * rad
             ph_up = (phi + resolution/2.) * rad
             dp = dp + cos(ph_up) - cos(ph_down)
-
         else:
             ph_up = (phi + resolution/2.) * rad
             ph_down = (phi - resolution/2.) * rad
@@ -395,31 +368,18 @@ def main(phi1=None, phi2=None, phi=None,
                 cube_vol = abs(dp1 * dp2 * dp)
                 ## ----------------------------------------- ##
 
+                icol=0
+                for i in range(4,gr0.shape[-1]):
+                    t[icol,m,n]=t[icol,m,n]*f[m,n] / cube_vol * FUL / wgt
+                    icol=icol+1
                 f[m,n] = f[m,n] / cube_vol * FUL / wgt
 
     ### ------------------------------------------ ###
-
-    # ## mesh grid for the cell f ---------------- ##
-    # x_lin = np.arange(xmin + resolution/2., xmax, dx)
-    # y_lin = np.arange(ymin + resolution/2., ymax, dy)
-    # print 'x_axis', x_lin
-    # print 'y_axis', y_lin
-
-    # x, y = np.meshgrid(y=x_lin, x=y_lin)
-    # print x.shape
-    # print y.shape
-    # print f.shape
-    # ## ----------------------------------------- ##
-
-    # fig = plt.figure(1)
-    # ax = fig.add_subplot(211)
-    # cnt = ax.contourf(x, y, f ) #, cmap=plt.cm.cmap_d['gray_r'])
-    # level = cnt._levels
-    # print 'levels: ', level
-
     # ## making nodes from cell ------------------ ##
     nodes = np.zeros((nnx+1, nny+1))
+    nodes_target = np.zeros((t.shape[0],nnx+1,nny+1))
     # ## ----------------------------------------- ##
+    nq=t.shape[0]
 
     ## assuming x-axis and y-axis boundaries are the mirror-axes
     for ix in range(int(nnx+1)):
@@ -428,13 +388,22 @@ def main(phi1=None, phi2=None, phi=None,
                 if iy==0:
                     #at the first corner
                     nodes[ix, iy] = f[ix, iy] * 4. / 4.
+                    for icol in range(nq):
+                        nodes_target[icol,ix, iy] = t[icol,ix, iy] * 4. / 4.
                 elif iy==nny:
                     nodes[ix, iy] = f[ix, iy-1] * 4. / 4.
+                    for icol in range(nq):
+                        nodes_target[icol,ix,iy-1] = t[icol,ix,iy-1] * 4. / 4.
                 else:
                     #at along the x=0 edge
                     temp = f[ix, iy-1] * 2.
                     temp = temp + f[ix, iy] * 2.
                     nodes[ix, iy] = temp / 4.
+
+                    for icol in range(nq):
+                        temp=t[icol,ix,iy-1]*2.
+                        temp=temp+t[icol,ix,iy]*2.
+                        nodes_target[icol,ix,iy] = temp / 4.
 
             elif ix > 0 and ix < nnx:
                 ## lower (iy=0) boundary
@@ -442,32 +411,48 @@ def main(phi1=None, phi2=None, phi=None,
                     temp = f[ix-1 ,iy]*2.
                     temp = temp + f[ix, iy] * 2.
                     nodes[ix, iy] = temp/4.
+                    for icol in range(nq):
+                        temp=t[icol,ix-1,iy]*2.
+                        temp=temp+t[icol,ix,iy]*2.
+                        nodes_target[icol,ix,iy] = temp / 4.
 
                 ## upper (iy=ny) boundary
                 elif iy==nny:
                     temp = f[ix-1, iy-1] * 2.
                     temp = temp + f[ix, iy-1] * 2.
                     nodes[ix, iy] = temp /4.
+                    for icol in range(nq):
+                        temp=t[icol,ix-1,iy-1]*2.
+                        temp=temp+t[icol,ix,iy-1]*2.
+                        nodes_target[icol,ix,iy] = temp / 4.
 
                 ## the rest
                 else:
                     temp = f[ix-1, iy-1] + f[ix, iy-1]
                     temp = temp + f[ix-1, iy] + f[ix, iy]
                     nodes[ix,iy] = temp / 4.
+                    for icol in range(nq):
+                        temp=t[icol,ix-1,iy-1] + t[icol,ix,iy-1]
+                        temp=temp+t[icol,ix-1,iy]+t[icol,ix,iy]
+                        nodes_target[icol,ix,iy] = temp / 4.
 
             elif ix==nnx:
                 if iy==0:
                     nodes[ix,iy] = f[ix-1, iy] * 4. / 4.
-
+                    for icol in range(nq):
+                        nodes_target[icol,ix, iy] = t[icol,ix-1, iy] * 4. / 4.
                 elif iy==nny:
                     nodes[ix,iy] = f[ix-1, iy-1] * 4. / 4.
-
+                    for icol in range(nq):
+                        nodes_target[icol,ix, iy] = t[icol,ix-1, iy-1] * 4. / 4.
                 else:
                     temp = (f[ix-1,iy-1] + f[ix-1,iy]) * 2.
                     nodes[ix, iy] = temp / 4.
+                    for icol in range(nq):
+                        temp = (t[icol,ix-1,iy-1]+t[icol,ix-1, iy])*2
+                        nodes_target[icol,ix, iy] = temp /4.
 
     ## ------------------------------------------------------ ##
-
     ## average along the phi axis -------------- ##
     if phi==None:
         xlabel = r'$\Phi$'
@@ -488,13 +473,12 @@ def main(phi1=None, phi2=None, phi=None,
 
     ## if all elemens == 0? put neglibile values
     if (all(nodes.flatten()[i]==0. for i in range(len(nodes.flatten())))):
-        nodes[::] = 1e-10
+        nodes[::] = 1e-20
 
     ## plotting the section based on nodes ----- ##
     nplot=ifig
     fig = plt.figure(nplot,figsize=(6,5))
     tiny = 0.00001
-
 
     x_lin = np.arange(xmin, xmax + tiny, dx)
     y_lin = np.arange(ymin, ymax + tiny, dy)
@@ -502,30 +486,13 @@ def main(phi1=None, phi2=None, phi=None,
     axt = fig.add_axes((0.15, 0.05, 0.75, 0.80),aspect='equal')#add_subplot(111,)
     ax = axt.twiny()
 
-    # if levels==None: cnt = ax.contour(
-    #         x,y, nodes, cmap = plt.cm.cmap_d['gray_r'])
-    # elif levels!=None: cnt = ax.contour(
-    #         x,y, nodes, levels, cmap = plt.cm.cmap_d['gray_r'])
-
-    #nodes = blur_image(nodes,3)
-
     if type(levels)==type(None):
-        #cnt = ax.contour(
-        #    x,y, nodes.T, color=('k',), linewidth=3.)
-        cnt = ax.contourf(
-            x,y, nodes.T)#, cmap = plt.cm.cmap_d['gray_r'])
+        cnt = ax.contourf(x,y, nodes.T)
     elif type(levels)!=type(None):
-        #cnt = ax.contour(
-        #    x,y, nodes.T, levels, color=('k',), linewidth=3.)
-        cnt = ax.contourf(
-            x,y, nodes.T, levels)#, cmap = plt.cm.cmap_d['gray_r'])
-
+        cnt = ax.contourf(x,y, nodes.T, levels)
     if ixlabel:ax.set_xlabel(xlabel, dict(fontsize=20))
     if iylabel:axt.set_ylabel(ylabel, dict(fontsize=20))
     level = cnt._levels
-
-    #ax.legend()
-
     ## x and y limit, and level plotting ------- ##
     ax.set_xlim(xmin, xmax);
     if ireverse:
@@ -548,22 +515,12 @@ def main(phi1=None, phi2=None, phi=None,
 
     else:
         ax.set_ylim(ymax, ymin)
-        # ax.set_yticks(np.arange(xmin, xmax+0.001, 15.))
-        # ax.set_xticks(np.arange(ymin, ymax+0.001, 15.))
-
     if False:
         plt.clabel(cnt, inline=False, fontsize=15.,
                    fmt = '%4.1f', inline_spacing=1. )
-
-    # tcolors = cnt.tcolors
-    # for i in range(len(tcolors)):
-    #     cc = tcolors[i][0][0:3]
-
-    ## ----------------------------------------- ##
     if echo==True: print('levels: ', level)
     ## ------------------------------------------ ##
-
-    return x, y, nodes, ax, axt, level, cnt
+    return x, y, nodes, ax, axt, level, cnt, nodes_target
 
 def gauss_kern(size, sizey=None):
     """ Returns a normalized 2D gauss kernel array for convolutions """
