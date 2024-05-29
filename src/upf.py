@@ -1096,7 +1096,7 @@ def ipfline(center=[0,0],csym='cubic'):
 
 """
 Sample symmetry application is performed over RVE calculation
-refer to the RVE class in cmb.py module.
+Refer to the RVE class in cmb.py module.
 """
 
 class polefigure:
@@ -1148,25 +1148,12 @@ class polefigure:
         if type(grains)!=type(None):
             self.gr = np.array(grains)
         elif type(filename)!=type(None):
-            try:
-                # self.gr = np.loadtxt(fname=filename,skiprows=4)
-
-                with open(filename,'r') as fo:
-                    lines=fo.readlines()
-                    ngr=int(lines[3].split()[1])
-                lines=lines[4:ngr+4]
-                gr=[]
-                for i in range(len(lines)):
-                    phi1,phi,phi2,wgt=map(float,lines[i].split()[:4])
-                    gr.append([phi1,phi,phi2,wgt])
-                self.gr=np.array(gr)
-            except:
-                from . import read_tex
-                blocks=read_tex.read(filename)
-                if len(blocks)>1:
-                    print('*** <%s> include %i number of snapshots'%(filename,len(blocks)))
-                    print('*** The last snapshot of crystallographic texture is used')
-                    self.gr=read_tex.block2gr(blocks[-1])
+            with open(filename,'r') as fo:
+                lines=fo.readlines()[4:]
+            ncol=len(lines[0].split())
+            self.gr=np.zeros((len(lines),ncol))
+            for i, line in enumerate(lines):
+                self.gr[i,:]=np.fromiter(map(float,line.split()),float)
         elif type(epf)!=type(None): # None is the default for epf
             """
             experimental pole figures..
@@ -2533,6 +2520,13 @@ def cells_pf(
     weight is assigned to the cell to which it belongs.
     Plots the cell's weight and returns the cell in array.
 
+    + Additional feature (2025-05-28)
+    Some more updates that I'm trying to implement here is to visualize
+    some other 'scalar' quantities that come along with the form of discrete orientation files.
+    Conventionally, 'texture' file has only 4 columns, consisting of phi1, phi, phi2, and weight.
+    The case that I'd like to deal here is to use the additional columns denoting, say, stored
+    energy, in the form of pole figure.
+
     ---------
     Arguments
     ---------
@@ -2573,8 +2567,8 @@ def cells_pf(
                 ngr=len(grains),grains=grains,
                 npol=len(poles_ca),poles_ca=poles_ca,transform=transform)
     else:
-        for i in range(len(grains)):
-            phi1,phi,phi2,wgt = grains[i]
+        for i, gr in enumerate(grains):
+            phi1,phi,phi2,wgt = gr[:4]
             ## arg = euler_f(2,phi1,phi,phi2,np.zeros((3,3))) ## ca<-sa
             ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
