@@ -693,7 +693,7 @@ def pole2f(poles_sa,poles_wgt,dth,dph,f):
         iy = int(  (phi*180./np.pi)    /dph-tiny)
         f[ix,iy]=f[ix,iy]+poles_wgt[i]
     return f
-def pole2f_cols(poles_sa,poles_wgt,poles_col,dth,dph,fcol):
+def pole2f_cols(poles_sa,poles_wgt,poles_col,f,dth,dph,fcol):
     """
     Collect weights belonging to each 'sector' in the polar coordinate
     of pole figure projection.
@@ -703,6 +703,7 @@ def pole2f_cols(poles_sa,poles_wgt,poles_col,dth,dph,fcol):
     poles_sa: pole referenced to sample axes
     poles_wgt: weight of each pole (originated from the weight of discrete orientations)
     poles_col: extra column quantities
+    f
     dth: incremental rotation angle ( -180 ~  180)
     dph: incremental 'tilting' angle (   0 ~  180)
 
@@ -715,7 +716,7 @@ def pole2f_cols(poles_sa,poles_wgt,poles_col,dth,dph,fcol):
         ix = int((theta*180./np.pi+180)/dth-tiny)
         iy = int(  (phi*180./np.pi)    /dph-tiny)
         for icol in range(ncol):
-            fcol[ix,iy,icol]=fcol[ix,iy,icol]+poles_col[i,icol]*poles_wgt[i]
+            fcol[ix,iy,icol]=fcol[ix,iy,icol]+poles_col[i,icol]*poles_wgt[i]/f[ix,iy]
     return fcol
 
 def cart2polar(x,y):
@@ -2151,8 +2152,6 @@ class polefigure:
             PHI    = PHI + rot ## default: rot=0.
             x      = R*np.cos(PHI); y = R*np.sin(PHI)
 
-            return N, Ncol, x, y
-
             nArray=np.array(N)
             xyCoords=np.array([x,y])
             mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
@@ -2311,10 +2310,12 @@ class polefigure:
             axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
             axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
 
-        try:
-            return fig
-        except:
-            pass
+        # try:
+        #     return fig
+        # except:
+        #     pass
+
+        return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
         #--------------------------------------------------#
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
@@ -2616,6 +2617,7 @@ def cells_pf(
     poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
     poles_col = poles_col.reshape((len(grains)*len(poles_ca),grains.shape[-1]-4))
 
+
     ## Full Sphere (-pi, +pi) and (0, pi)
     #x = np.arange(-180., 180.+tiny, dth) ## in-plane rotation
     #y = np.arange(   0., 180.+tiny, dph) ## tilting
@@ -2637,9 +2639,11 @@ def cells_pf(
     dx_   = 2.*np.pi/nx
     dcosz = -np.diff(np.cos(z))
     fnorm = dcosz*dx_/(2*np.pi)
-    for i in range(nx): # in-plane rotation
-        f[i,:]=f[i,:]/fnorm[:]
-        f[i,:]=f[i,:]/fsum
+    f_ori=f.copy() # without normalization
+    f     = f/fnorm/fsum
+    #for i in range(nx): # in-plane rotation
+    #    f[i,:]=f[i,:]/fnorm[:]
+    #    f[i,:]=f[i,:]/fsum
 
     ## Extension of f_bounds - see algorithm ipynb
     f_bounds = np.zeros((nx+2,ny+2))
@@ -2654,32 +2658,20 @@ def cells_pf(
     ## pole-figure-weighted quantities for the extra columns in <esgr_x.out>
     ncols=grains.shape[-1]## addition to the pole weights
     if ncols>4:
-        poles_wgt_f=np.zeros(poles_wgt.shape)
-        for i, pole_sa in enumerate(poles_sa):
-            theta,phi = cart2sph(pole_sa)#poles_sa[i])
-            ix = int((theta*180./np.pi+180)/dth-tiny)
-            iy = int(  (phi*180./np.pi)    /dph-tiny)
-            poles_wgt_f[i]=poles_wgt[i]/f[ix,iy]
-
-        poles_wgt_f[np.isnan(poles_wgt_f)]=0.
-
-        print( '** Warning!! format of <esgr_x.out> is used!')
-        print(f'** ncols: {ncols}')
-        print(f'** poles_col.shape: {poles_col.shape}')
-        print(f'** poles_wgt_f.shape: {poles_wgt_f.shape}')
-        print(f'poles_col[0,:]:{poles_col[0,:]}')
-        print(f'** f.shape: {f.shape}')
-        print(f'** nx_node, ny_node: {nx_node},{ny_node}')
-        print(f'** nx     , ny     : {nx},{ny}')
         fcol=np.zeros((nx,ny,ncols-4))
-        fcol = pole2f_cols(poles_sa,poles_wgt_f,poles_col,dth,dph,fcol.copy())
+        fcol = pole2f_cols(poles_sa,
+                           poles_wgt,poles_col,f_ori,
+                           dth,dph,fcol.copy())
         print(f'** fcol.shape: {fcol.shape}')
-
-        sys.exit(0)
+        for icol in range(ncols-4):
+            print(f'icol:{icol+1}')
+            print(f'fcol[:,:,icol].flatten().max(): {fcol[:,:,icol].flatten().max()}')
+            print(f'fcol[:,:,icol].flatten().min(): {fcol[:,:,icol].flatten().min()}')
+            print('--')
 
         ## Extension of f_bounds - see algorithm ipynb
+        f_bounds_col = np.zeros((nx+2,ny+2,ncols-4))
         for icol in range(ncols-4):
-            f_bounds_col = np.zeros((nx+2,ny+2,ncols-4))
             f_bounds_col[1:-1,1:-1,icol]=fcol[ :, :,icol]
             f_bounds_col[  -1,1:-1,icol]=fcol[ 0, :,icol]
             f_bounds_col[   0,1:-1,icol]=fcol[-1, :,icol]
@@ -2690,7 +2682,7 @@ def cells_pf(
         nodes_col = np.zeros((*nodes.shape,ncols-4))
 
     ## Use average of the four adjacent neighbouring nodes of pole figures
-
+    print(f'nodes_col.shape: {nodes_col.shape}')
     for i in range(len(nodes)):
         for j in range(len(nodes[i])):
             nodes[i,j] = (f_bounds[i:i+2,j:j+2]).sum()/4.
@@ -2698,8 +2690,8 @@ def cells_pf(
                 for icol in range(ncols-4):
                     nodes_col[i,j,icol] = (f_bounds_col[i:i+2,j:j+2,icol]).sum()/4.
 
-    for i in range(ncols-4):
-        print(f'{i+1} coloumn')
+    for icol in range(ncols-4):
+        print(f'{icol+1} coloumn')
         print(f'nodes_col[:,:,icol].flatten().min: {nodes_col[:,:,icol].flatten().min()}')
         print(f'nodes_col[:,:,icol].flatten().max: {nodes_col[:,:,icol].flatten().max()}')
 
