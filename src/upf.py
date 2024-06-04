@@ -108,7 +108,7 @@ from .euler import euler # in euler module def euler:
                         # A-matrix and Euler angles
 import time,random
 import fortranformat as ff
-
+import sys
 
 try:
     import MP
@@ -675,13 +675,47 @@ def duplicate0_360(phi, data):
         return phi, data
 
 def pole2f(poles_sa,poles_wgt,dth,dph,f):
+    """
+    Collect weights belonging to each 'sector' in the polar coordinate
+    of pole figure projection.
+
+    Arguments
+    ---------
+    poles_sa: pole referenced to sample axes
+    poles_wgt: weight of each pole (originated from the weight of discrete orientations)
+    dth: incremental rotation angle ( -180 ~  180)
+    dph: incremental 'tilting' angle (   0 ~  180)
+    """
     tiny = 1e-9
-    for i in range(len(poles_sa)):
-        theta,phi = cart2sph(poles_sa[i])
+    for i, pole_sa in enumerate(poles_sa):
+        theta,phi = cart2sph(pole_sa)
         ix = int((theta*180./np.pi+180)/dth-tiny)
         iy = int(  (phi*180./np.pi)    /dph-tiny)
         f[ix,iy]=f[ix,iy]+poles_wgt[i]
     return f
+def pole2f_cols(poles_sa,poles_wgt,poles_col,dth,dph,fcol):
+    """
+    Collect weights belonging to each 'sector' in the polar coordinate
+    of pole figure projection.
+
+    Arguments
+    ---------
+    poles_sa: pole referenced to sample axes
+    poles_wgt: weight of each pole (originated from the weight of discrete orientations)
+    dth: incremental rotation angle ( -180 ~  180)
+    dph: incremental 'tilting' angle (   0 ~  180)
+
+    f_ij^{a}: weighted value of a scalar quantity {a}, belonging to each sector (ij).
+    """
+    tiny = 1e-9
+    ncol=poles_col.shape[-1]
+    for i, pole_sa in enumerate(poles_sa):
+        theta,phi = cart2sph(pole_sa)#poles_sa[i])
+        ix = int((theta*180./np.pi+180)/dth-tiny)
+        iy = int(  (phi*180./np.pi)    /dph-tiny)
+        for icol in range(ncol):
+            fcol[ix,iy,icol]=fcol[ix,iy,icol]+poles_col[i,icol]*poles_wgt[i]
+    return fcol
 
 def cart2polar(x,y):
     """
@@ -1098,6 +1132,16 @@ def ipfline(center=[0,0],csym='cubic'):
 Sample symmetry application is performed over RVE calculation
 Refer to the RVE class in cmb.py module.
 """
+def gen_fig(nrows=3,ncols=3,colsize=2.5,rowsize=2.,**kwargs):
+    from matplotlib.gridspec import GridSpec
+    gs=GridSpec(nrows=nrows,ncols=ncols,**kwargs)
+    fig=plt.figure(figsize=(colsize*ncols,rowsize*nrows))
+    axes=np.empty((nrows,ncols),dtype='object')
+    for i in range(nrows):
+        for j in range(ncols):
+            ax=fig.add_subplot(gs[i,j])
+            axes[i,j]=ax
+    return fig,axes
 
 class polefigure:
     # decides if the given set is in the texture file form or array
@@ -1149,9 +1193,20 @@ class polefigure:
             self.gr = np.array(grains)
         elif type(filename)!=type(None):
             with open(filename,'r') as fo:
-                lines=fo.readlines()[4:]
+                lines_ori=fo.readlines()
+                lines=lines_ori[4:]
+
             ncol=len(lines[0].split())
-            self.gr=np.zeros((len(lines),ncol))
+
+            try:
+                ## attempt to find ngr from the 4th line (works with 'TEX_PHx.OUT' format)
+                print(f'lines_ori[3]:, {lines_ori[3]}')
+                ngr=int(lines_ori[3].split()[1])
+            except:
+                ngr=len(lines_ori)-4
+
+            self.gr=np.zeros((ngr,ncol))
+            lines=lines[-1:-1-ngr:-1][::-1]
             for i, line in enumerate(lines):
                 self.gr[i,:]=np.fromiter(map(float,line.split()),float)
         elif type(epf)!=type(None): # None is the default for epf
