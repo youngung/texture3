@@ -2128,8 +2128,8 @@ class polefigure:
                 uet(et,head='Elapsed time for calling cells_pf')
             except:pass
 
-            x_node = np.arange(-180.,180.+tiny,dth)
-            y_node = np.arange(   0., 90.+tiny,dph)
+            x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
+            y_node = np.arange(   0., 90.+tiny,dph) ## tilting (half-sphere)
             XN, YN = np.meshgrid(x_node,y_node)
 
             #--------------------------------------------------#
@@ -2608,23 +2608,16 @@ def cells_pf(
     nx, ny = int(360./dth), int(180./dph)
     f = np.zeros((nx,ny))
 
-    ## Semi Sphere
+    ## Semi Sphere (-pi, +pi) and (0, pi/2)
     x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
     y_node = np.arange(   0., 90.+tiny,dph) ## tilting
     nx_node = len(x_node); ny_node = len(y_node)
     nodes = np.zeros((nx_node,ny_node))
     f = pole2f(poles_sa,poles_wgt,dth,dph,f.copy())
 
-    ncols =grains.shape[1]
-
-    if ncols==4: ## "TEX_PHx.OUT" format
-        pass
-    elif ncols>4: ## "esgr_x.out" format
-        pass
-
 
     ## Normalization (m.u.r)
-    fsum=f[:,:int(ny/2)].flatten().sum()
+    fsum=f[:,:int(ny/2)].flatten().sum() ## sum of weights on the half-sphere
     z = np.zeros((ny+1))
     for i in range(ny+1): z[i] = np.pi/float(ny)*i
     dx_   = 2.*np.pi/nx
@@ -2642,7 +2635,11 @@ def cells_pf(
     f_bounds[  -1,   0]=f_bounds[-1,-2]
     f_bounds[   :,  -1]=f_bounds[ :, 1]
 
-    ## Use average of the four adjacent neighbouring nodes
+    ncols=grains.shape[-1]## addition to the pole weights
+    if ncols>4:
+        pass
+
+    ## Use average of the four adjacent neighbouring nodes of pole figures
     for i in range(len(nodes)):
         for j in range(len(nodes[i])):
             nodes[i,j] = (f_bounds[i:i+2,j:j+2]).sum()/4.
@@ -2651,7 +2648,7 @@ def cells_pf(
     for i in range(n_rim):
         nodes[:,i]=(nodes[:,i].sum())/len(nodes[:,i])
 
-    XN,YN=np.meshgrid(x_node,y_node)
+
     return nodes
 
 def __equiv__(miller=None, csym=None,
