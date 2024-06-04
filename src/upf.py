@@ -1135,8 +1135,8 @@ Refer to the RVE class in cmb.py module.
 """
 def gen_fig(nrows=3,ncols=3,colsize=2.5,rowsize=2.,**kwargs):
     from matplotlib.gridspec import GridSpec
-    gs=GridSpec(nrows=nrows,ncols=ncols,**kwargs)
-    fig=plt.figure(figsize=(colsize*ncols,rowsize*nrows))
+    gs=GridSpec(nrows=nrows,ncols=ncols)
+    fig=plt.figure(figsize=(colsize*ncols,rowsize*nrows),**kwargs)
     axes=np.empty((nrows,ncols),dtype='object')
     for i in range(nrows):
         for j in range(ncols):
@@ -2104,8 +2104,9 @@ class polefigure:
 
         tiny = 1.e-9
         N=[]
-        t0=time.time()
+        if self.gr.shape[-1]>4: Ncol=[]
 
+        t0=time.time()
         if mode in ['line','contour','fill']:
             if is_joblib and len(poles)>1:
                 rst=Parallel(n_jobs=len(poles)) (
@@ -2118,11 +2119,17 @@ class polefigure:
                     N.append(rst[i])
             else:
                 for i in range(len(poles)):
-                    N.append(cells_pf(
+                    rst=cells_pf(
                         pole_ca=poles[i],dth=dth,dph=dph,
                         csym=self.csym,cang=self.cang,
                         cdim=self.cdim,grains=self.gr,
-                        n_rim = n_rim,transform=transform))
+                        n_rim = n_rim,transform=transform)
+                    if self.gr.shape[-1]>4:
+                        N.append(rst[0])
+                        Ncol.append(rst[1])
+                    else:
+                        N.append(rst)
+
 
             et = time.time()-t0
             try:
@@ -2135,14 +2142,16 @@ class polefigure:
 
             #--------------------------------------------------#
             ## plotting / resolution
-            nm     = int((360.0 - 0.)/dth)
-            nn     = int((180. - 90.)/dph)
+            nm     = int((360.0 - 0.)/dth) ## in-plane rotation
+            nn     = int((180. - 90.)/dph) ## tilting
             theta  = np.linspace(pi, pi/2., nn+1)
             phi    = np.linspace(0., 2.*pi, nm+1)
             r      = np.sin(theta)/(1-np.cos(theta))
             R, PHI = np.meshgrid(r,phi)
             PHI    = PHI + rot ## default: rot=0.
             x      = R*np.cos(PHI); y = R*np.sin(PHI)
+
+            return N, Ncol, x, y
 
             nArray=np.array(N)
             xyCoords=np.array([x,y])
@@ -2628,7 +2637,9 @@ def cells_pf(
     dx_   = 2.*np.pi/nx
     dcosz = -np.diff(np.cos(z))
     fnorm = dcosz*dx_/(2*np.pi)
-    f     = f/fnorm/fsum
+    for i in range(nx): # in-plane rotation
+        f[i,:]=f[i,:]/fnorm[:]
+        f[i,:]=f[i,:]/fsum
 
     ## Extension of f_bounds - see algorithm ipynb
     f_bounds = np.zeros((nx+2,ny+2))
@@ -2643,7 +2654,6 @@ def cells_pf(
     ## pole-figure-weighted quantities for the extra columns in <esgr_x.out>
     ncols=grains.shape[-1]## addition to the pole weights
     if ncols>4:
-
         poles_wgt_f=np.zeros(poles_wgt.shape)
         for i, pole_sa in enumerate(poles_sa):
             theta,phi = cart2sph(pole_sa)#poles_sa[i])
@@ -2651,26 +2661,59 @@ def cells_pf(
             iy = int(  (phi*180./np.pi)    /dph-tiny)
             poles_wgt_f[i]=poles_wgt[i]/f[ix,iy]
 
+        poles_wgt_f[np.isnan(poles_wgt_f)]=0.
 
         print( '** Warning!! format of <esgr_x.out> is used!')
         print(f'** ncols: {ncols}')
         print(f'** poles_col.shape: {poles_col.shape}')
+        print(f'** poles_wgt_f.shape: {poles_wgt_f.shape}')
         print(f'poles_col[0,:]:{poles_col[0,:]}')
-        fcol = np.zeros((nx,ny,ncols-4))
-        #fcol= pole2f_cols(poles_sa,poles_wgt,  poles_col,dth,dph,fcol.copy())
+        print(f'** f.shape: {f.shape}')
+        print(f'** nx_node, ny_node: {nx_node},{ny_node}')
+        print(f'** nx     , ny     : {nx},{ny}')
+        fcol=np.zeros((nx,ny,ncols-4))
         fcol = pole2f_cols(poles_sa,poles_wgt_f,poles_col,dth,dph,fcol.copy())
+        print(f'** fcol.shape: {fcol.shape}')
+
+        sys.exit(0)
+
+        ## Extension of f_bounds - see algorithm ipynb
+        for icol in range(ncols-4):
+            f_bounds_col = np.zeros((nx+2,ny+2,ncols-4))
+            f_bounds_col[1:-1,1:-1,icol]=fcol[ :, :,icol]
+            f_bounds_col[  -1,1:-1,icol]=fcol[ 0, :,icol]
+            f_bounds_col[   0,1:-1,icol]=fcol[-1, :,icol]
+            f_bounds_col[1:-1,   0,icol]=fcol[ :,-1,icol]
+            f_bounds_col[   0,   0,icol]=f_bounds_col[ 0,-2,icol]
+            f_bounds_col[  -1,   0,icol]=f_bounds_col[-1,-2,icol]
+            f_bounds_col[   :,  -1,icol]=f_bounds_col[ :, 1,icol]
+        nodes_col = np.zeros((*nodes.shape,ncols-4))
 
     ## Use average of the four adjacent neighbouring nodes of pole figures
+
     for i in range(len(nodes)):
         for j in range(len(nodes[i])):
             nodes[i,j] = (f_bounds[i:i+2,j:j+2]).sum()/4.
+            if ncols>4:
+                for icol in range(ncols-4):
+                    nodes_col[i,j,icol] = (f_bounds_col[i:i+2,j:j+2,icol]).sum()/4.
+
+    for i in range(ncols-4):
+        print(f'{i+1} coloumn')
+        print(f'nodes_col[:,:,icol].flatten().min: {nodes_col[:,:,icol].flatten().min()}')
+        print(f'nodes_col[:,:,icol].flatten().max: {nodes_col[:,:,icol].flatten().max()}')
 
     ## Centeral region is using an avergage around the rim
     for i in range(n_rim):
         nodes[:,i]=(nodes[:,i].sum())/len(nodes[:,i])
+        if ncols>4:
+            for icol in range(ncols-4):
+                nodes_col[:,i,icol]=(nodes_col[:,i,icol].sum())/len(nodes_col[:,i,icol])
 
-
-    return nodes
+    if ncols>4:
+        return nodes, nodes_col
+    else:
+        return nodes
 
 def __equiv__(miller=None, csym=None,
               cdim=[1.,1.,1.], cang=[90.,90.,90.]):
