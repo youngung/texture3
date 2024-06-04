@@ -1436,7 +1436,7 @@ class polefigure:
            transformation matrix applied to the entire polycrystal aggregate.
         """
         for i in range(len(self.gr)):
-            phi1,phi,phi2,wgt = self.gr[i]
+            phi1,phi,phi2,wgt = self.gr[i][:4]
             ## arg = euler_f(2,phi1,phi,phi2,np.zeros((3,3))) ## ca<-sa
             ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
@@ -2155,52 +2155,24 @@ class polefigure:
                 ## multiple crystal poles after reflecting crystal symmetries
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
-
-                # print('p0 prints begins (=sneq)')
-                # for k in range(len(p0)):
-                #     print('%5.2f %5.2f %5.2f'%(p0[k][0],p0[k][1],p0[k][2]))
-                # print('p0 prints ends')
-
-                # Vectors pointing at two opposite directions
                 P=np.zeros((len(p0)*2,3))
                 P[:len(p0),:]= p0[:,:]
                 P[len(p0):,:]=-p0[:,:]
-
-                # print('doubling the poles considering the opposite of each')
-                #for k in range(len(P)):
-                #    print(P[k])
-
-                #
                 poles_ca=P/np.sqrt(P**2).sum()
-
-                # print('Normalized vectors corresponding to the equivalent poles')
-                #for k in range(len(poles_ca)):
-                #    print(poles_ca[k])
-
                 poles_sa=np.zeros((len(self.gr),len(poles_ca),3))
-
                 for i in range(len(self.gr)):
-                    phi1,phi,phi2,wgt = self.gr[i]
+                    phi1,phi,phi2,wgt = self.gr[i][:4]
                     amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
                     amat=amat.T ## sa<-ca
-
-                    if (transform==np.identity(3)).all():
-                        pass
-                    else:
-                        amat=np.dot(transform,amat)
-
+                    if (transform==np.identity(3)).all(): pass
+                    else: amat=np.dot(transform,amat)
                     for j in range(len(poles_ca)):
                         poles_sa[i,j,:]=np.dot(amat,poles_ca[j])
-
                 poles_sa  = poles_sa.reshape( (len(self.gr)*len(poles_ca),3))
-
                 XY=[]
                 for i in range(len(poles_sa)):
                     x,y=projection(pole=poles_sa[i])
-                    # print('(x,y):',x,y)
-
                     if x**2+y**2<=1+1e-3:
-                        ## a work-around to switch to the opposite hemisphere
                         y=-y
                         x=-x
                         XY.append([x,y])
@@ -2211,26 +2183,19 @@ class polefigure:
             try:
                 uet(et,head='Elapsed time for calculting dots')
             except: pass
-            # return pf_dots
-            # raise IOError('check')
         else:
             raise IOError('Unexpected mode given to pf_new')
-
 
         if type(axs)==type(None):
             if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
             else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
             ##
-            axs=[]
+            axs=np.empty(len(poles),dtype='object')
             for i in range(len(poles)):
-                _ax_ = fig.add_subplot(1,len(poles),i+1)
-                axs.append(_ax_)
-
+                axs[i] = fig.add_subplot(1,len(poles),i+1)
             plt.subplots_adjust(left=0,right=0.8)
 
-
         for i in range(len(poles)):
-
             if mode in ['line','contour','fill']:
                 if type(levels)==type(None):
                     if lev_norm_log:
@@ -2606,10 +2571,8 @@ def cells_pf(
     poles_ca[len(p0):,:] =-p0[:,:]
     poles_ca = poles_ca / np.sqrt((poles_ca**2).sum())
 
-    nx,ny = len(grains), len(poles_ca)
-    poles_sa  = np.zeros((nx,ny,3))
-    poles_wgt = np.zeros((nx,ny))
-
+    poles_sa  = np.zeros((len(grains),len(poles_ca),3))
+    poles_wgt = np.zeros((len(grains),len(poles_ca)))
 
     #i_for=False # debug
     if i_for:
@@ -2622,35 +2585,43 @@ def cells_pf(
                 ngr=len(grains),grains=grains,
                 npol=len(poles_ca),poles_ca=poles_ca,transform=transform)
     else:
+
         for i, gr in enumerate(grains):
             phi1,phi,phi2,wgt = gr[:4]
             ## arg = euler_f(2,phi1,phi,phi2,np.zeros((3,3))) ## ca<-sa
-            ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
             amat=amat.T ## sa<-ca
             if (transform==np.identity(3)).all():pass
-            else:amat=np.dot(transform,amat)
+            else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
 
-            for j in range(len(poles_ca)):
-                poles_sa[i,j,:] = np.dot(amat,poles_ca[j])
+            #for j in range(len(poles_ca)):
+            for j, pole_ca in enumerate(poles_ca):
+                poles_sa[i,j,:] = np.dot(amat,pole_ca)
                 poles_wgt[i,j]  = wgt
 
     poles_sa  = poles_sa.reshape( (len(grains)*len(poles_ca),3))
     poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
 
     ## Full Sphere (-pi, +pi) and (0, pi)
-    x = np.arange(-180., 180.+tiny, dth)
-    y = np.arange(   0., 180.+tiny, dph)
+    #x = np.arange(-180., 180.+tiny, dth) ## in-plane rotation
+    #y = np.arange(   0., 180.+tiny, dph) ## tilting
     nx, ny = int(360./dth), int(180./dph)
     f = np.zeros((nx,ny))
 
     ## Semi Sphere
-    x_node = np.arange(-180.,180.+tiny,dth)
-    y_node = np.arange(   0., 90.+tiny,dph)
+    x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
+    y_node = np.arange(   0., 90.+tiny,dph) ## tilting
     nx_node = len(x_node); ny_node = len(y_node)
     nodes = np.zeros((nx_node,ny_node))
-
     f = pole2f(poles_sa,poles_wgt,dth,dph,f.copy())
+
+    ncols =grains.shape[1]
+
+    if ncols==4: ## "TEX_PHx.OUT" format
+        pass
+    elif ncols>4: ## "esgr_x.out" format
+        pass
+
 
     ## Normalization (m.u.r)
     fsum=f[:,:int(ny/2)].flatten().sum()
