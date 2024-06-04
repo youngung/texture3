@@ -702,6 +702,7 @@ def pole2f_cols(poles_sa,poles_wgt,poles_col,dth,dph,fcol):
     ---------
     poles_sa: pole referenced to sample axes
     poles_wgt: weight of each pole (originated from the weight of discrete orientations)
+    poles_col: extra column quantities
     dth: incremental rotation angle ( -180 ~  180)
     dph: incremental 'tilting' angle (   0 ~  180)
 
@@ -2573,6 +2574,7 @@ def cells_pf(
 
     poles_sa  = np.zeros((len(grains),len(poles_ca),3))
     poles_wgt = np.zeros((len(grains),len(poles_ca)))
+    poles_col = np.zeros((len(grains),len(poles_ca),grains.shape[-1]-4))
 
     #i_for=False # debug
     if i_for:
@@ -2594,13 +2596,16 @@ def cells_pf(
             if (transform==np.identity(3)).all():pass
             else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
 
-            #for j in range(len(poles_ca)):
+            ## multiple crystal poles may exist for each given (hkl)
+            ## due to the crystal symmetry
             for j, pole_ca in enumerate(poles_ca):
                 poles_sa[i,j,:] = np.dot(amat,pole_ca)
-                poles_wgt[i,j]  = wgt
+                poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
+            poles_wgt[i,:]  = wgt
 
     poles_sa  = poles_sa.reshape( (len(grains)*len(poles_ca),3))
     poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
+    poles_col = poles_col.reshape((len(grains)*len(poles_ca),grains.shape[-1]-4))
 
     ## Full Sphere (-pi, +pi) and (0, pi)
     #x = np.arange(-180., 180.+tiny, dth) ## in-plane rotation
@@ -2635,9 +2640,25 @@ def cells_pf(
     f_bounds[  -1,   0]=f_bounds[-1,-2]
     f_bounds[   :,  -1]=f_bounds[ :, 1]
 
+    ## pole-figure-weighted quantities for the extra columns in <esgr_x.out>
     ncols=grains.shape[-1]## addition to the pole weights
     if ncols>4:
-        pass
+
+        poles_wgt_f=np.zeros(poles_wgt.shape)
+        for i, pole_sa in enumerate(poles_sa):
+            theta,phi = cart2sph(pole_sa)#poles_sa[i])
+            ix = int((theta*180./np.pi+180)/dth-tiny)
+            iy = int(  (phi*180./np.pi)    /dph-tiny)
+            poles_wgt_f[i]=poles_wgt[i]/f[ix,iy]
+
+
+        print( '** Warning!! format of <esgr_x.out> is used!')
+        print(f'** ncols: {ncols}')
+        print(f'** poles_col.shape: {poles_col.shape}')
+        print(f'poles_col[0,:]:{poles_col[0,:]}')
+        fcol = np.zeros((nx,ny,ncols-4))
+        #fcol= pole2f_cols(poles_sa,poles_wgt,  poles_col,dth,dph,fcol.copy())
+        fcol = pole2f_cols(poles_sa,poles_wgt_f,poles_col,dth,dph,fcol.copy())
 
     ## Use average of the four adjacent neighbouring nodes of pole figures
     for i in range(len(nodes)):
