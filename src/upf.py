@@ -2317,7 +2317,10 @@ class polefigure:
         if self.gr.shape[-1]>4:
             return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
         elif self.gr.shape[-1]==4:
-            return fig
+            try:
+                return fig
+            except:
+                pass
         #--------------------------------------------------#
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
