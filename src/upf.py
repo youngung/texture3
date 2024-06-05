@@ -2682,9 +2682,9 @@ def cells_pf(
             f_bounds_col[  -1,   0,icol]=f_bounds_col[-1,-2,icol]
             f_bounds_col[   :,  -1,icol]=f_bounds_col[ :, 1,icol]
         nodes_col = np.zeros((*nodes.shape,ncols-4))
-
+        # print(f'nodes_col.shape: {nodes_col.shape}')
     ## Use average of the four adjacent neighbouring nodes of pole figures
-    print(f'nodes_col.shape: {nodes_col.shape}')
+
     for i in range(len(nodes)):
         for j in range(len(nodes[i])):
             nodes[i,j] = (f_bounds[i:i+2,j:j+2]).sum()/4.
