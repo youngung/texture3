@@ -1202,7 +1202,7 @@ class polefigure:
 
             try:
                 ## attempt to find ngr from the 4th line (works with 'TEX_PHx.OUT' format)
-                print(f'lines_ori[3]:, {lines_ori[3]}')
+                # print(f'lines_ori[3]:, {lines_ori[3]}')
                 ngr=int(lines_ori[3].split()[1])
             except:
                 ngr=len(lines_ori)-4
@@ -2664,12 +2664,12 @@ def cells_pf(
         fcol = pole2f_cols(poles_sa,
                            poles_wgt,poles_col,f_ori,
                            dth,dph,fcol.copy())
-        print(f'** fcol.shape: {fcol.shape}')
-        for icol in range(ncols-4):
-            print(f'icol:{icol+1}')
-            print(f'fcol[:,:,icol].flatten().max(): {fcol[:,:,icol].flatten().max()}')
-            print(f'fcol[:,:,icol].flatten().min(): {fcol[:,:,icol].flatten().min()}')
-            print('--')
+        # print(f'** fcol.shape: {fcol.shape}')
+        # for icol in range(ncols-4):
+        #     print(f'icol:{icol+1}')
+        #     print(f'fcol[:,:,icol].flatten().max(): {fcol[:,:,icol].flatten().max()}')
+        #     print(f'fcol[:,:,icol].flatten().min(): {fcol[:,:,icol].flatten().min()}')
+        #     print('--')
 
         ## Extension of f_bounds - see algorithm ipynb
         f_bounds_col = np.zeros((nx+2,ny+2,ncols-4))
@@ -2692,10 +2692,10 @@ def cells_pf(
                 for icol in range(ncols-4):
                     nodes_col[i,j,icol] = (f_bounds_col[i:i+2,j:j+2,icol]).sum()/4.
 
-    for icol in range(ncols-4):
-        print(f'{icol+1} coloumn')
-        print(f'nodes_col[:,:,icol].flatten().min: {nodes_col[:,:,icol].flatten().min()}')
-        print(f'nodes_col[:,:,icol].flatten().max: {nodes_col[:,:,icol].flatten().max()}')
+    # for icol in range(ncols-4):
+    #     print(f'{icol+1} coloumn')
+    #     print(f'nodes_col[:,:,icol].flatten().min: {nodes_col[:,:,icol].flatten().min()}')
+    #     print(f'nodes_col[:,:,icol].flatten().max: {nodes_col[:,:,icol].flatten().max()}')
 
     ## Centeral region is using an avergage around the rim
     for i in range(n_rim):
