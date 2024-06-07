@@ -12,8 +12,14 @@ Youngung Jeong
 
 youngung.jeong@gmail.com
 """
-import random,math,os,upf
-from .euler import euler as eul
+import random,math,os#,upf
+from TX import upf
+#import upf
+#import .euler
+from TX import euler
+eul=euler.euler
+#from euler import euler as eul
+
 gauss = random.gauss
 sin = math.sin
 cos = math.cos
@@ -179,7 +185,7 @@ def gr2f(gr=None, header=None, filename=None):
     f = open(filename, 'w')
     if header==None: f.write('dum\ndum\ndum\nB %i\n'%len(gr))
     else: f.write('%s\ndum\ndum\nB %i\n'%(header, len(gr)))
-        
+
     for i in range(len(gr)):
         f.write('%9.2f %9.2f %9.2f  %s\n'%(
                 gr[i][0], gr[i][1], gr[i][2], str(1./len(gr))))
@@ -328,8 +334,8 @@ class text:
         import numpy as np
 
         ## generates a random rotation axis, about which
-        ## the given grain rotates. Axis is represented by 
-        ## two angles: delta and phi. 
+        ## the given grain rotates. Axis is represented by
+        ## two angles: delta and phi.
         # delta, phi = self.rot_axis()
         # print "Rotation axis's delta, phi ",\
         #     delta*180./np.pi, phi*180./np.pi
@@ -351,7 +357,7 @@ class text:
         #                             phi = phi,
         #                             w=self.normal(w0))
 
-            
+
         # A transforms from SA to CA [ca<-sa]
         A = eul(ph = p1, th = p, tm = p2, echo=False)
 
@@ -396,7 +402,7 @@ class text:
         return p
 
     def rot_vectang(self, th, r):
-        """ Rotate the given rotation matrix r [ca<-sa] by a 
+        """ Rotate the given rotation matrix r [ca<-sa] by a
         random axis with th degree.
         """
         from cs import vector_ang
@@ -411,7 +417,7 @@ class text:
         """
         Random rotation axis generator
         """
-        delta = random.uniform(-1.,1.) 
+        delta = random.uniform(-1.,1.)
         delta = acos(delta)                 # arc
         phi = random.uniform(-math.pi, math.pi) # rotation
         return delta, phi   #radians...
@@ -425,7 +431,7 @@ class text:
         vector = np.array([x,y,z])
         vector = vector / np.linalg.norm(vector)
         return vector
-        
+
     def gaussian(self, w0):
         dp = gauss(mu=0., sigma=w0)
         return dp
@@ -509,7 +515,7 @@ def miller2mat_RT(uvw,xyz):
 
     # mat [ca<-sa]
     return mat
-    
+
 
 
 # def miller2euler(hkl=None,uvw=None):
