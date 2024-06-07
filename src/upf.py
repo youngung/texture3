@@ -2048,7 +2048,7 @@ class polefigure:
            pole figure plot. - I usually obtain incomplete pole figure
            upto a tilting <chi> of 80.
         <mode>
-           Contour model: 'line' or 'fill' or 'dot'
+           Contour model: 'line' or 'fill' or 'dot', 'dotm'
         <ilev>
            level option: 0 common contour levels for all poles generated
                          1 individual levels applied for individual poles
@@ -2156,7 +2156,7 @@ class polefigure:
             xyCoords=np.array([x,y])
             mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
 
-        elif mode in ['dot']:
+        elif mode in ['dot','dotm']:
 
             pf_dots=[]
             for ip in range(len(poles)):
@@ -2189,6 +2189,8 @@ class polefigure:
 
             pf_dots=np.array(pf_dots,dtype='object')
             et = time.time()-t0
+            if mode=='dotm': return pf_dots
+
             try:
                 uet(et,head='Elapsed time for calculting dots')
             except: pass
