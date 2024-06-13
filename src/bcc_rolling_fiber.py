@@ -205,7 +205,7 @@ def vector_ang(u,th):
     arguments
     =========
     u[3] = vector axis about which the rotation occurs
-    th   = radian angle (degree of the rotation)
+    th   = angle in degree
     """
     u = np.array(u)
     u = u/np.sqrt((u**2).sum()) # normalize
