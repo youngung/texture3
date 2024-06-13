@@ -1513,7 +1513,7 @@ class polefigure:
         """
         Given the pole plot the dot inverse pole figure.
         **The contour version of the inverse pole
-        figure is not prepared yet.
+        figure is not available yet.
 
         ---------
         Arguments
