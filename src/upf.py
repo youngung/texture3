@@ -123,42 +123,6 @@ else:
     t2s = progress_bar.convert_sec_to_string
     uet = progress_bar.update_elapsed_time
 
-
-
-## Compiling fortran modules has been very very tricky
-# If cannot import for_lib correctly, upf will use
-# corresponding python modules/functions/methods
-try:
-    import pf_for_lib
-    agr2pol_f = pf_for_lib.agr2pol
-    proj_f    = pf_for_lib.projection
-    euler_f   = pf_for_lib.euler
-    gr2psa    = pf_for_lib.grain2pole_sa
-    gr2psa_transform    = pf_for_lib.grain2pole_sa_transf
-    i_for=True
-except:
-    i_for=False
-    # print('----------------------------------------------------')
-    print('     pf_for_lib is not available in the system')
-    # print('   pf_for_lib is a fortran binary that is loaded')
-    # print('   in Python using f2py, which may be helpful to ')
-    # print('         speed-up calculations in upf.py')
-    # print('----------------------------------------------------')
-
-try:
-    import joblib
-except:
-    is_joblib = False
-    print('** joblib was not found - will not be used in TX.upf')
-    # print '-'*60
-    # print 'One might improve the speed by installing joblib'
-    # print 'JOBLIB is to run embarrasingly parallel runs for multiple poles'
-    # print "Find about joblib in  https://github.com/joblib/joblib"
-    # print '-'*60
-else:
-    is_joblib = True
-    from joblib import Parallel, delayed
-
 ## removing joblib
 is_joblib=False
 pi   = math.pi;
@@ -1173,6 +1137,7 @@ class polefigure:
         cang=[90.,90.,90.]
         ssym=False : Sample symmetry: not even started...
         epf = None : experimental pole figure file
+        epf_mode = 'epf' or 'xpc'
         """
         # The grain aggregte can be given either through a file or #
         # passing an array of them to the class directly.          #
@@ -1439,7 +1404,6 @@ class polefigure:
         """
         for i in range(len(self.gr)):
             phi1,phi,phi2,wgt = self.gr[i][:4]
-            ## arg = euler_f(2,phi1,phi,phi2,np.zeros((3,3))) ## ca<-sa
             ## amat = arg[-1]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
             amat=amat.T ## sa<-ca
@@ -1655,10 +1619,7 @@ class polefigure:
             elif proj=='pf':
                 ag = agrain[:3].copy()
                 _np_eq_=npeq[ip]
-                if i_for:
-                    p = agr2pol_f(ag, _np_eq_)
-                else:
-                    p = agr2pol(ag, _np_eq_,proj=proj)
+                p = agr2pol(ag, _np_eq_,proj=proj)
             # p = agr2pol(agrain=agrain, miller=npeq[ip], proj=proj)
 
             t_agr2pol = t_agr2pol + time.time()-t_1
@@ -1670,10 +1631,7 @@ class polefigure:
                 t_1=time.time()
 
 
-                if i_for:
-                    xy.append(proj_f(p[:3]))
-                else:
-                    xy.append(projection(pole=p))
+                xy.append(projection(pole=p))
 
                 t_proj = t_proj + time.time()-t_1
             elif proj=='ipf': # p is in ca
@@ -1698,10 +1656,7 @@ class polefigure:
                 else: npoles=[p]
                 for npp in range(len(npoles)):
 
-                    if i_for:
-                        prj_xy = proj_f(npoles[npp][:3])
-                    else:
-                        prj_xy = projection(pole=npoles[npp])
+                    prj_xy = projection(pole=npoles[npp])
                     xy.append(prj_xy)
                     POLE.append(npoles[npp])
                 pass # if over 'pf' or 'ipf'
@@ -1743,49 +1698,28 @@ class polefigure:
             npeq = __equiv__(
                 miller=pole, csym=csym,
                 cdim=cdim, cang=cang)
-
         t0 = time.time()
 
-        # is_joblib=False
-        if is_joblib:
-            ## This loop is quite extensive and slow.
-            rst = Parallel(n_jobs=3) (delayed(core)(
-                self,pole=pole,proj=proj,csym=csym,
-                cang=cang,cdim=cdim,equivp=npeq,
-                agrain=self.gr[i]) for i in range(len(self.gr)))
-
-            for i in range(len(rst)):
-                xy, p = rst[i]
-                # p is n equivalent poles
-                p = np.array(p)
-                for j in range(len(p)):
-                    # make it postive.
-                    if p[j][2] <0: p[j] = p[j] * - 1
-                    ## phi, and theta in radian
-                    x, y = cart2sph(p[j])
-                    pol.append([x, y, self.gr[i][3]]) #phi, theta, intensity
-
-        elif not(is_joblib):
-            for i in range(len(self.gr)):
-                ## Either systematic representative
-                ## poles or individual pole for
-                ## each and every grain.
-                if pole_mode=='sys': xpole = pole
-                elif pole_mode=='indv':
-                    xpole = poles_gr[i]
-                    npeq = [xpole, xpole*-1] ## two coaxial poles
-                xy, p = self.core(
-                    pole=xpole, proj=proj, csym=csym,
-                    agrain=self.gr[i], cang=cang,
-                    cdim=cdim, equivp=npeq)
-                # p is n equivalent poles
-                p = np.array(p)
-                for j in range(len(p)):
-                    # make it postive.
-                    if p[j][2] <0: p[j] = p[j] * - 1
-                    ## phi, and theta in radian
-                    x, y = cart2sph(p[j])
-                    pol.append([x, y, self.gr[i][3]]) #phi, theta, intensity
+        for i in range(len(self.gr)):
+            ## Either systematic representative
+            ## poles or individual pole for
+            ## each and every grain.
+            if pole_mode=='sys': xpole = pole
+            elif pole_mode=='indv':
+                xpole = poles_gr[i]
+                npeq = [xpole, xpole*-1] ## two coaxial poles
+            xy, p = self.core(
+                pole=xpole, proj=proj, csym=csym,
+                agrain=self.gr[i], cang=cang,
+                cdim=cdim, equivp=npeq)
+            # p is n equivalent poles
+            p = np.array(p)
+            for j in range(len(p)):
+                # make it postive.
+                if p[j][2] <0: p[j] = p[j] * - 1
+                ## phi, and theta in radian
+                x, y = cart2sph(p[j])
+                pol.append([x, y, self.gr[i][3]]) #phi, theta, intensity
 
         print('Elapsed time for self.core:', t2s(time.time()-t0))
 
@@ -2109,27 +2043,339 @@ class polefigure:
 
         t0=time.time()
         if mode in ['line','contour','fill']:
-            if is_joblib and len(poles)>1:
-                rst=Parallel(n_jobs=len(poles)) (
-                    delayed(cells_pf)(
-                        pole_ca=poles[i],dth=dth,dph=dph,
-                        csym=self.csym,cang=self.cang,cdim=self.cdim,
-                        grains=self.gr,n_rim = n_rim,transform=transform) \
-                    for i in range(len(poles)))
-                for i in range(len(rst)):
-                    N.append(rst[i])
-            else:
-                for i in range(len(poles)):
-                    rst=cells_pf(
-                        pole_ca=poles[i],dth=dth,dph=dph,
-                        csym=self.csym,cang=self.cang,
-                        cdim=self.cdim,grains=self.gr,
-                        n_rim = n_rim,transform=transform)
-                    if self.gr.shape[-1]>4:
-                        N.append(rst[0])
-                        Ncol.append(rst[1])
+            for i in range(len(poles)):
+                rst=cells_pf(
+                    pole_ca=poles[i],dth=dth,dph=dph,
+                    csym=self.csym,cang=self.cang,
+                    cdim=self.cdim,grains=self.gr,
+                    n_rim = n_rim,transform=transform)
+                if self.gr.shape[-1]>4:
+                    N.append(rst[0])
+                    Ncol.append(rst[1])
+                else:
+                    N.append(rst)
+
+            et = time.time()-t0
+            try:
+                uet(et,head='Elapsed time for calling cells_pf')
+            except:pass
+
+            x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
+            y_node = np.arange(   0., 90.+tiny,dph) ## tilting (half-sphere)
+            XN, YN = np.meshgrid(x_node,y_node)
+
+            #--------------------------------------------------#
+            ## plotting / resolution
+            nm     = int((360.0 - 0.)/dth) ## in-plane rotation
+            nn     = int((180. - 90.)/dph) ## tilting
+            theta  = np.linspace(pi, pi/2., nn+1)
+            phi    = np.linspace(0., 2.*pi, nm+1)
+            r      = np.sin(theta)/(1-np.cos(theta))
+            R, PHI = np.meshgrid(r,phi)
+            PHI    = PHI + rot ## default: rot=0.
+            x      = R*np.cos(PHI); y = R*np.sin(PHI)
+
+            nArray=np.array(N)
+            xyCoords=np.array([x,y])
+            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
+
+        elif mode in ['dot','dotm']:
+
+            pf_dots=[]
+            for ip in range(len(poles)):
+                P=[]
+                ## multiple crystal poles after reflecting crystal symmetries
+                p0 = __equiv__(miller=poles[ip],csym=self.csym,
+                               cdim=self.cdim,cang=self.cang)
+                P=np.zeros((len(p0)*2,3))
+                P[:len(p0),:]= p0[:,:]
+                P[len(p0):,:]=-p0[:,:]
+                poles_ca=P/np.sqrt(P**2).sum()
+                poles_sa=np.zeros((len(self.gr),len(poles_ca),3))
+                for i in range(len(self.gr)):
+                    phi1,phi,phi2,wgt = self.gr[i][:4]
+                    amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+                    amat=amat.T ## sa<-ca
+                    if (transform==np.identity(3)).all(): pass
+                    else: amat=np.dot(transform,amat)
+                    for j in range(len(poles_ca)):
+                        poles_sa[i,j,:]=np.dot(amat,poles_ca[j])
+                poles_sa  = poles_sa.reshape( (len(self.gr)*len(poles_ca),3))
+                XY=[]
+                for i in range(len(poles_sa)):
+                    x,y=projection(pole=poles_sa[i])
+                    if x**2+y**2<=1+1e-3:
+                        y=-y
+                        x=-x
+                        XY.append([x,y])
+                pf_dots.append(np.array(XY))
+
+            pf_dots=np.array(pf_dots,dtype='object')
+            et = time.time()-t0
+            if mode=='dotm': return pf_dots
+
+            try:
+                uet(et,head='Elapsed time for calculting dots')
+            except: pass
+        else:
+            raise IOError('Unexpected mode given to pf_new')
+
+        if type(axs)==type(None):
+            if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
+            else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
+            ##
+            axs=np.empty(len(poles),dtype='object')
+            for i in range(len(poles)):
+                axs[i] = fig.add_subplot(1,len(poles),i+1)
+            plt.subplots_adjust(left=0,right=0.8)
+
+        for i in range(len(poles)):
+            if mode in ['line','contour','fill']:
+                if type(levels)==type(None):
+                    if lev_norm_log:
+                        ## To prevent log (0) -> np.nan
+                        ## hardwire minimum value
+                        if mns[i]==0: mns[i] = 0.5
+                        levels = np.logspace(
+                            np.log10(mns[i]),np.log10(mxs[i]),nlev)
+                        norm = LogNorm()
                     else:
-                        N.append(rst)
+                        levels = np.linspace(mns[i],mxs[i],nlev)
+                        norm = None
+                else:
+                    norm = None
+
+                cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                color_mapping = matplotlib.cm.ScalarMappable(
+                    norm=norm,cmap=cmap_mpl)
+
+                if   mode=='line': func = axs[i].contour
+                elif mode in ['fill', 'contour']: func = axs[i].contourf
+
+                ## contour plot
+                nArray[i][np.isnan(nArray[i])]=0.
+                nArray[i][nArray[i]<=0]=1e-4
+                cnts=func(x,y,nArray[i],levels=levels,
+                          cmap=cmap,norm=norm,zorder=10)
+
+                ## x, y coordinates of maximum intensity in grid
+                i0,j0 = indices_mx[i]
+                mx_coord_x = x[i0,j0]
+                mx_coord_y = y[i0,j0]
+
+                if mode=='line':
+                    axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
+                                color=color_mapping.to_rgba(levels[-1]))
+
+                if ires:# and mode!='fill':
+                    xs=[];ys=[]
+                    filt = nArray[i,:,:]<levels[0]
+                    filt[0,1:]=False
+                    filt[1:,0]=False
+                    xs=x[filt]; ys=y[filt]
+                    if len(xs)>0:
+                        axs[i].plot(
+                            xs,ys,'k.',
+                            alpha=0.17*len(poles),
+                            markersize=2.0)
+                # if ires and mode=='fill': ## overlay the resolution
+                #     axs[i].plot(x,y,'k+',
+                #                 alpha=0.17*len(poles),
+                #                 markersize=2.0,zorder=100)
+
+                if ideco_lev:
+                    ideco_opt=0
+                else:
+                    ideco_opt=1
+
+                if ilev==1 or (ilev==0 and i==len(axs)-1):
+                    deco_pf(axs[i],cnts,miller[i],ideco_opt,
+                            iskip_last=False,ix=ix,iy=iy,mode=mode)
+
+
+
+                ## pole
+                s='('
+                for k in range(len(miller[i])):
+                    if miller[i][k]<0: h = r'\bar{%s}'%str(-1*miller[i][k])
+                    else: h = '%s'%str(miller[i][k])
+                    s='%s%s'%(s,h)
+                s='%s)'%s
+                s=r'$\mathbf{%s}$'%s
+                #s=rf'${s}$'
+                axs[i].text(0.6,-0.95,s,fontsize=12)
+
+            if mode in ['dot']:
+                if ideco_lev:
+                    ideco_opt=0
+                else:
+                    ideco_opt=1
+                x=pf_dots[i][:,0]
+                y=pf_dots[i][:,1]
+                axs[i].scatter(x,y,**kwargs)
+                try:
+                    deco_pf(axs[i],None,miller[i],ideco_opt,
+                            iskip_last=False,ix=ix,iy=iy,mode=mode)
+                except:
+                    pass
+
+
+
+            ## circle
+            _x_,_y_ = __circle__()
+            axs[i].plot(_x_,_y_,'k-')
+            axs[i].set_axis_off()
+            axs[i].set_xlim(-1.1,1.4)
+            axs[i].set_ylim(-1.1,1.4)
+            axs[i].set_aspect('equal')
+
+            ## axis label/    ## Ticks
+            axs[i].text(1.15,0. ,ix,va='center',ha='center')
+            axs[i].text(0. ,1.15,iy,va='center',ha='center')
+            axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
+            axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
+
+        # try:
+        #     return fig
+        # except:
+        #     pass
+        if self.gr.shape[-1]>4:
+            return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
+        elif self.gr.shape[-1]==4:
+            try:
+                return fig
+            except:
+                pass
+        #--------------------------------------------------#
+
+
+    def ipf_new(
+            self,ifig=None,axs=None,
+            poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
+            mode='line',
+            dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
+            lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
+            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
+            ideco_lev=True,
+            **kwargs):
+        """
+        New version of ipf that will succeed upf.polefigure.ipf
+
+        Arguments
+        ---------
+        <ifig> or <axs>
+            <ifig> and <axs> should be mutually exclusive.
+            It is acceptable for both to be *not* specified.
+            However, it is unacceptable for both to be specified.
+
+        <poles>
+           For cubics, three digits; for hexagonals four digits
+        <ix>, <iy>
+           x and y tick labels appended to each pole figure
+        <dph>:
+            (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
+        <dth>:
+            (rotation angle: -180,+180)
+        <rot>:
+             in-plane rotatation (radian)
+
+        <n_rim>:
+             The number of 'central' rims to be *averaged*.
+             For better understandings, see the algorithm notebook
+             located in
+                ./ipynb/UPF_Algorithm.ipynb
+
+        <cdim>:  crystal dimension
+           For cubic, [1,1,1]
+           For a particularly AZ31 sheet, it is [1,1,1.6235]
+           Users should know what is the lattice dimension for the crystal
+           structure of which he/she plots the pole figures.
+
+        <ires>  = True;
+           If True, indicate the grid
+           If <mode> is 'fill' and ires is True, overlay the resolution
+              all over the pole.
+           if <mode> is 'line' and ires is True, only the spots lower than
+              minimum level of contour is plotted.
+
+        <mn>,<mx>
+          minimum and maximum levels of contour
+          If not specified, mn and mx is determined using levels of
+          calculated contours
+          if <mode> is 'fill', <mn> is overriden by the levels of
+          calculated contours.
+
+        <lev_norm_log>
+           If True, use logarithmic scales. If False, linear scale.
+        <nlev> = 7
+           Level of iso contour bins.
+           The total number of lines will be nlev+1
+        <cmap>
+           Color map used to color-code the contour levels.
+           Refer to 'http://matplotlib.org/users/colormaps.html'
+           for more color-map options.
+        <iline_khi80> = False
+           Whether or not to draw a line of chi=80 in experimental
+           pole figure plot. - I usually obtain incomplete pole figure
+           upto a tilting <chi> of 80.
+        <mode>
+           Contour model: 'line' or 'fill' or 'dot', 'dotm'
+        <ilev>
+           level option: 0 common contour levels for all poles generated
+                         1 individual levels applied for individual poles
+        <levels>
+           Default is None. One can define levels of the contours.
+        <transform>
+           transformation matrix applied to the entire polycrystal aggregate.
+        <ideco_lev> True or False
+           switch to turn on or off the levels
+
+        Returns
+        -------
+        fig: matplotlib.figure.Figure
+        """
+        import MP.lib.mpl_lib
+        import matplotlib.cm
+        from matplotlib.colors import LogNorm
+
+        ## check mutually exclusive arguments (ifig and axs)
+        if type(ifig)!=type(None) and type(axs)!=type(None):
+            raise IOError('** Err: ifig and axs are mutually exclusive')
+
+        nlev = nlev + 1 ##
+        miller=poles[::]
+
+        if type(cdim)!=type(None): self.cdim=cdim
+        ## 4 digits miller indices are used for hexagon and trigo
+        if self.csym=='hexag' or self.csym=='trigo':
+            pole_=[]
+            for i in range(len(poles)):
+                p  = [0,0,0]
+                p_ = poles[i]
+                if len(p_)!=4: raise IOError('4 digits should be given')
+                p[0] = p_[0]
+                p[1] = p_[1]
+                p[2] = p_[3]
+                pole_.append(p)
+            poles = pole_[::]
+
+        tiny = 1.e-9
+        N=[]
+        if self.gr.shape[-1]>4: Ncol=[]
+
+        t0=time.time()
+        if mode in ['line','contour','fill']:
+            for i in range(len(poles)):
+                rst=cells_pf(
+                    pole_ca=poles[i],dth=dth,dph=dph,
+                    csym=self.csym,cang=self.cang,
+                    cdim=self.cdim,grains=self.gr,
+                    n_rim = n_rim,transform=transform)
+                if self.gr.shape[-1]>4:
+                    N.append(rst[0])
+                    Ncol.append(rst[1])
+                else:
+                    N.append(rst)
 
 
             et = time.time()-t0
@@ -2324,6 +2570,7 @@ class polefigure:
             except:
                 pass
         #--------------------------------------------------#
+
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
         """
@@ -2578,47 +2825,29 @@ def cells_pf(
     transform
     """
     tiny = 1e-9
-    ## Find poles in sa [pole_sa]
-    # phs, ths, wgts = [], [], []
-
     ## Set of equivalent vectors based on crystal symmetry
-    p0 = __equiv__(miller=pole_ca,csym=csym,
-                   cdim=cdim,cang=cang)
+    p0 = __equiv__(miller=pole_ca,csym=csym,cdim=cdim,cang=cang)
     poles_ca=np.zeros((len(p0)*2,3))
     poles_ca[:len(p0),:] = p0[:,:]
     poles_ca[len(p0):,:] =-p0[:,:]
     poles_ca = poles_ca / np.sqrt((poles_ca**2).sum())
-
     poles_sa  = np.zeros((len(grains),len(poles_ca),3))
     poles_wgt = np.zeros((len(grains),len(poles_ca)))
     poles_col = np.zeros((len(grains),len(poles_ca),grains.shape[-1]-4))
 
-    #i_for=False # debug
-    if i_for:
-        if (transform==np.identity(3)).all():
-            poles_sa, poles_wgt = gr2psa(
-                ngr=len(grains),grains=grains,
-                npol=len(poles_ca),poles_ca=poles_ca) #np.array(poles_ca))
-        else: ## in case transformation matrix is not identity matrix.
-            poles_sa, poles_wgt = gr2psa_transform(
-                ngr=len(grains),grains=grains,
-                npol=len(poles_ca),poles_ca=poles_ca,transform=transform)
-    else:
+    for i, gr in enumerate(grains):
+        phi1,phi,phi2,wgt = gr[:4]
+        amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+        amat=amat.T ## sa<-ca
+        if (transform==np.identity(3)).all():pass
+        else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
 
-        for i, gr in enumerate(grains):
-            phi1,phi,phi2,wgt = gr[:4]
-            ## arg = euler_f(2,phi1,phi,phi2,np.zeros((3,3))) ## ca<-sa
-            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-            amat=amat.T ## sa<-ca
-            if (transform==np.identity(3)).all():pass
-            else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
-
-            ## multiple crystal poles may exist for each given (hkl)
-            ## due to the crystal symmetry
-            for j, pole_ca in enumerate(poles_ca):
-                poles_sa[i,j,:] = np.dot(amat,pole_ca)
-                poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
-            poles_wgt[i,:]  = wgt
+        ## multiple crystal poles may exist for each given (hkl)
+        ## due to the crystal symmetry
+        for j, pole_ca in enumerate(poles_ca):
+            poles_sa[i,j,:] = np.dot(amat,pole_ca)
+            poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
+        poles_wgt[i,:]  = wgt
 
     poles_sa  = poles_sa.reshape( (len(grains)*len(poles_ca),3))
     poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
