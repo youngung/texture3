@@ -1,12 +1,19 @@
 """
 This module started as a hobby project while learning Python back in 2011
+when I was a graduate student. At the moment I am using it for my custom pole
+figures from discrete orientations used for VPSC-like crystal plasticity
+codes inclduing VPSC, dEVPSC
 
 Features:
   crystal symmetries : cubic and hexagonal
-    This module can be easily extened for other crystal symmetries
-    but have not been thoroughly checked yet.
+  This module can be easily extened for other crystal symmetries.
+  At least, it additionally works for orthorhombic crystal structure
+  for a paper I worked on uranium. The crystal symmetry should be
+  extended and generalized for all crystal symmetries existing, which
+  has not been pursued yet.
 
-Pole figure and Inverse pole figure plotting by stereographic
+
+Pole figure and inverse pole figure plotting by stereographic
 projection. Both contour and dot types are available for pole
 figures, whereas only dot type is available for inverse pole figure, yet.
 
@@ -71,8 +78,9 @@ examples
  >>> cnts = mypf.pf()
 """
 # print __doc__
+
 """
-Updates
+Updates logs are no longer tracked as the project is version-controlled using Git.
   # 1
   2011-16-Mar
   Contour plot is done on the given axes if necessary.
@@ -1415,63 +1423,63 @@ class polefigure:
             phi1,phi2,phi3 = euler(a=amat.T)
             self.gr[i][:3]=phi1,phi2,phi3
 
-    def pf_axis(self, pole=[[1,0,0]], ifig=1):
-        """
-        Plot each pole without crystal symmetry
-        """
-        color = ['r','b','g','k','gray']
-        #marker =['o','x','+','d','.']
-        for ip in range(len(pole)):
-            cl = color[ip]
-            #mk = marker[i]
-            for i in range(len(self.gr)):
-                tm = self.dotplot(proj='pf', agrain=self.gr[i],
-                                  npole=len(pole), ipole=ip+1,
-                                  pole=pole[ip], ifig=ifig,
-                                  cdim='None', cang=self.cang,
-                                  csym=self.csym, mode=None,
-                                  color=cl)
+    # def pf_axis(self, pole=[[1,0,0]], ifig=1):
+    #     """
+    #     Plot each pole without crystal symmetry
+    #     """
+    #     color = ['r','b','g','k','gray']
+    #     #marker =['o','x','+','d','.']
+    #     for ip in range(len(pole)):
+    #         cl = color[ip]
+    #         #mk = marker[i]
+    #         for i in range(len(self.gr)):
+    #             tm = self.dotplot(proj='pf', agrain=self.gr[i],
+    #                               npole=len(pole), ipole=ip+1,
+    #                               pole=pole[ip], ifig=ifig,
+    #                               cdim='None', cang=self.cang,
+    #                               csym=self.csym, mode=None,
+    #                               color=cl)
 
-    def pf2xyw(self,pole=[1,0,0],csym='cubic',cdim=[1.,1.,1.],
-               cang=[90.,90.,90.],fn='dat.xyz'):
-        """
-        Read pole and write xyw to a file
+    # def pf2xyw(self,pole=[1,0,0],csym='cubic',cdim=[1.,1.,1.],
+    #            cang=[90.,90.,90.],fn='dat.xyz'):
+    #     """
+    #     Read pole and write xyw to a file
 
-        Arguments
-        =========
-        pole
-        """
-        f = open(fn,'w')
-        xyzw= []
-        for i in range(len(self.gr)):
-            gr = self.gr[i][::]
-            phi1, phi, phi2 = gr[:3:]
-            phi1 = phi1 - 90.
+    #     Arguments
+    #     =========
+    #     pole
+    #     """
+    #     f = open(fn,'w')
+    #     xyzw= []
+    #     for i in range(len(self.gr)):
+    #         gr = self.gr[i][::]
+    #         phi1, phi, phi2 = gr[:3:]
+    #         phi1 = phi1 - 90.
 
-            npeq = __equiv__(
-                miller=pole, csym=csym, cdim=cdim, cang=cang)
+    #         npeq = __equiv__(
+    #             miller=pole, csym=csym, cdim=cdim, cang=cang)
 
-            xy, POLE = self.core(
-                pole=pole, proj='pf',csym=csym,
-                agrain=gr,isym=True,
-                cdim=cdim,cang=cang, equivp=npeq)
+    #         xy, POLE = self.core(
+    #             pole=pole, proj='pf',csym=csym,
+    #             agrain=gr,isym=True,
+    #             cdim=cdim,cang=cang, equivp=npeq)
 
-            w = gr[-1]
-            # for j in xrange(len(xy)):
-            #     x,y = xy[j]
-            #     z = 0
-            #     f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
-            #     xyzw.append([x,y,z,w])
+    #         w = gr[-1]
+    #         # for j in xrange(len(xy)):
+    #         #     x,y = xy[j]
+    #         #     z = 0
+    #         #     f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
+    #         #     xyzw.append([x,y,z,w])
 
 
-            for j in range(len(POLE)):
-                xyz=POLE[j]
-                x,y,z = xyz
-                f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
-                xyzw.append([x,y,z,w])
+    #         for j in range(len(POLE)):
+    #             xyz=POLE[j]
+    #             x,y,z = xyz
+    #             f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
+    #             xyzw.append([x,y,z,w])
 
-        f.close()
-        return np.array(xyzw).T
+    #     f.close()
+    #     return np.array(xyzw).T
 
     def ipf(self, pole=None,ifig=4,mode='dot',deco=True,**kwargs):
         """
@@ -1666,250 +1674,6 @@ class polefigure:
         # print 'Elapsed time for proj ', t2s(t_proj)
 
         return xy, POLE
-
-    def cells(self,pole=[1,0,0], ifig=None, dm=15., dn = 15.,
-              csym=None, cang=[90.,90.,90.], cdim=[1.,1.,1.],
-              proj='pf', pole_mode='sys', poles_gr=None):
-        """
-        Creates cells whose resolutioin is mgrid * ngrid.
-        Given the delta m and delta n (dm, dn), each pole's
-        weight is assigned to a cell which braces it.
-        Plots the cell's weight and returns the cell in array.
-
-        ---------
-        Arguments
-        ---------
-        pole = [1,0,0]
-        ifig = None
-        dm   = 7.5.
-        dn   = 7.5.
-        csym = None
-        cang = [90.,90.,90.]
-        cdim = [1.,1.,1.,]
-        proj = 'pf'
-        pole_mode='sys', 'indv'
-        poles_gr = None, [] array shape: (ngr, 3)
-        """
-        ## Frequently used local functions or methods
-        pol  = [] # a group of pole points.
-
-        ## npeq calculations
-        if pole_mode=='sys':
-            npeq = __equiv__(
-                miller=pole, csym=csym,
-                cdim=cdim, cang=cang)
-        t0 = time.time()
-
-        for i in range(len(self.gr)):
-            ## Either systematic representative
-            ## poles or individual pole for
-            ## each and every grain.
-            if pole_mode=='sys': xpole = pole
-            elif pole_mode=='indv':
-                xpole = poles_gr[i]
-                npeq = [xpole, xpole*-1] ## two coaxial poles
-            xy, p = self.core(
-                pole=xpole, proj=proj, csym=csym,
-                agrain=self.gr[i], cang=cang,
-                cdim=cdim, equivp=npeq)
-            # p is n equivalent poles
-            p = np.array(p)
-            for j in range(len(p)):
-                # make it postive.
-                if p[j][2] <0: p[j] = p[j] * - 1
-                ## phi, and theta in radian
-                x, y = cart2sph(p[j])
-                pol.append([x, y, self.gr[i][3]]) #phi, theta, intensity
-
-        print('Elapsed time for self.core:', t2s(time.time()-t0))
-
-        t0=time.time()
-
-        ## weight normalization
-        pol = np.array(pol).T
-        pol[2] = pol[2]/ pol[2].sum() ## for normalization that follows.
-        pol = pol.transpose()
-
-        # grid number along phi   axis (x) is
-        # referred to as m
-        # grid number along theta axis (y) is
-        # referred to as n
-
-        # m x n grid;  m and n's range
-        # m is in [-pi.,pi];  n is in [0, pi/2.]
-
-
-        """
-        (ngrid) (0,pi/2.) (theta, tilting)
-        ^
-        |
-        |
-        |
-        |
-        L_______________>  (mgrid) (-pi,+pi) (phi, rotation)
-
-        phi = (-pi,+pi) + dm/2.
-        theta = (-pi,+pi) + dm/2.
-        """
-        dmp = dm * pi/180.
-        dnp = dn * pi/180.
-
-        mgrid = int(360./dm); ngrid = int(90./dn)
-        phi_angle   = np.arange(-pi, pi   )/dm + dm/2
-        theta_angle = np.arange( 0., pi/2.)/dn + dn/2
-        f = np.zeros((mgrid, ngrid))
-        for i in range(len(pol)):
-            phi = pol[i][0]; theta = pol[i][1]
-            mi  = int((phi+pi)/dmp - 1e-9) #subtract tiny
-            ni  = int(theta/dnp    - 1e-9) #subtract tiny
-            f[mi,ni] = f[mi,ni] + pol[i][2]
-
-            # if mi<0 or ni<0 :
-            #     raise IOError, 'Negative index'
-            # elif mi>mgrid or ni>ngrid:
-            #     raise IOError, 'Unexpected Error'
-            # try:
-            #f[mi,ni] = f[mi,ni] + pol[i][2]
-            # except:
-            #     print phi*180./np.pi, theta*180./np.pi
-            #     raise IOError, "Something wrong in "+\
-            #         "the index for f[mi,ni]"
-
-        ## ----------------------------------------
-        """
-        Symmetrization over the cell (f)
-        """
-        #1. Symmetrization abount the x-axis
-        #2. Symmetrization about the y-axis
-        ## ----------------------------------------
-
-        # #ismooth = False
-        # ismooth = True
-        # if ismooth:
-        #     fpole = 0.
-        #     for m in xrange(int(mgrid)):
-        #         fpole = fpole + f[m,0]
-        #     fnorm = (1.-cos(dn * pi/180. ))*2.*pi
-        #     #fnorm = 1.*pi
-        #     fpole = fpole / fnorm
-        #     for m in xrange(int(mgrid)):
-        #         f[m,0] = fpole
-        # else:  pass
-
-        # fnorm = dcos(z) * deltx / 360
-
-        """
-        Spherical coordinates result in an area element
-        dA = sin(n)*dm*dn
-        This area element dA is dependent on the tilting (n) grid
-
-        Normalization of pole figure intensity, i.e., f(theta, phi) is:
-        1/(2pi) \int f(theta,phi) sin(theta),dphi,dtheta = 1
-        """
-
-        z = np.zeros((ngrid+1,))
-        deltz = (pi/2.)/float(ngrid)
-        for i in range(ngrid+1):
-            z[i] = deltz*i
-
-        deltx = 2.*pi/mgrid
-        for m in range(mgrid):
-            for n in range(int(ngrid)):
-                fnorm = (cos(z[n]) - cos(z[n+1])) * deltx/(2*pi)
-                f[m,n] = f[m,n] / fnorm
-
-        if ifig!=None:
-            fig = plt.figure(ifig)
-            ax = fig.add_subplot(111)
-            ax.plot(f)
-            ax.set_ylim(0.,)
-
-        nodes = np.zeros((mgrid+1,ngrid+1))  # rot, tilting = (azimuth, declination) ...
-
-        ## Assigns the same intensity for the first n rings
-        n = 1
-        for i in range(n):
-            # South-pole : along  n=0 axis ---
-            for m in range(len(f)+1):
-                nodes[m,i] = f[:,i].sum() / len(f)
-        ## ------------------------------
-
-        # # along n=1 axis ----------------
-        # f1 = 0.
-        # for m in xrange(len(f)):
-        #     f1 = f1 + f[m,1]
-        # f1avg = f1 / len(f)
-        # for m in xrange(len(f)+1):
-        #     nodes[m,1] = f1avg
-        # ## ------------------------------
-
-        ph = np.linspace(-pi, pi   , mgrid+1)
-        th = np.linspace( 0., pi/2., ngrid+1)
-
-        regions = np.zeros((mgrid+1,ngrid+1,4,2))
-        for m in range(int(mgrid+1)):
-            for nn in range(int(ngrid)):
-                n = nn + 1
-                nodes[m,n] # <--- currently interesting node
-                ## find the nodes' phi and theta
-                ## that's phi[m] and theta[n]
-
-                reg_ph = np.zeros((2,)); reg_th = np.zeros((2,))
-
-                reg_ph[0] = ph[m] - (dm*pi/180.)/2.
-                reg_ph[1] = ph[m] + (dm*pi/180.)/2.
-                reg_th[0] = th[n] - (dn*pi/180.)/2.
-                reg_th[1] = th[n] + (dn*pi/180.)/2.
-
-                reg = []
-                reg.append([reg_ph[0], reg_th[0]])
-                reg.append([reg_ph[0], reg_th[1]])
-                reg.append([reg_ph[1], reg_th[0]])
-                reg.append([reg_ph[1], reg_th[1]])
-
-                for i in range(len(reg)):
-                    p = reg[i][0]
-                    t = reg[i][1]
-                    if p>pi: p = p - 2.*pi
-                    elif p<-pi: p = p + 2.*pi
-                    elif p==pi or p==-pi:
-                        print('Unexpected..'); raise IOError
-                    if t>pi/2.:
-                        t = t - (dn*pi/180.)
-                        p = p + pi
-                        if   p> pi: p = p - 2.*pi
-                        elif p<-pi: p = p + 2.*pi
-                    reg[i][0] = p
-                    reg[i][1] = t
-
-                ## for each node, find the 4 adjacent
-                ## regions' intensites
-                ## and average them out and assign to the node.
-                inten = 0.
-                for i in range(4):
-                    p = reg[i][0]
-                    t = reg[i][1]
-                    mi = int((p+pi)/(dm*pi/180.)-0.1**6)
-                    ni = int(t/(dn*pi/180.) -0.1**6)
-                    if mi<0 or ni<0 :
-                        input('Negative index')
-                        raise IOError
-                    inten = inten + f[mi,ni]
-                nodes[m,n] = inten/4.
-
-        print('Elapsed time in self.core after cells:', t2s(time.time()-t0))
-        return f, nodes
-
-    def define_axes(self):
-        """
-        convert three bases vectors (i.e., [1,0,0], [0,1,0], [0,0,1]
-        And find to which direction they are pointing at in the final
-        pole figure projection.
-        """
-        self.bases = np.identity(3)
-        x,y,z = self.bases[0,:], self.bases[1,:], self.bases[2,:]
-        ## Very often, x/y/z are aligned with RD/TD/ND.
-        ## Note that self.bases are referenced in the laboratory axes.
 
     def pf_new(
             self,ifig=None,axs=None,
@@ -2249,7 +2013,7 @@ class polefigure:
         #--------------------------------------------------#
 
 
-    def ipf_new(
+        def ipf_new(
             self,ifig=None,axs=None,
             poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
             mode='line',
