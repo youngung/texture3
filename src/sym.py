@@ -402,9 +402,9 @@ def cvec(cdim=None, cang=None):
     return cvec
 
 
-def cv(pole, cdim=None, cang=None, csym=None):
+def cv(pole, cdim=None, cang=None):
     """
-    Creats vector of the pole taking care of its unit cell's
+    Creats vector of the (plane normal) pole taking care of its unit cell's
     dimension and axes' angles.
     """
     sqrt = np.sqrt
@@ -418,5 +418,5 @@ def cv(pole, cdim=None, cang=None, csym=None):
     norm = sqrt(s[0]**2 + s[1]**2 + s[2]**2)
     for i in range(3):
         s[i] = s[i]/norm
-        if abs(s[i])<0.1**5: s[i]=0.
+        if abs(s[i])<1e-6: s[i]=0.
     return s
