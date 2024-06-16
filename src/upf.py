@@ -1958,10 +1958,12 @@ class polefigure:
                 elif mode in ['fill', 'contour']: func = axs[i].contourf
 
                 ## contour plot
-                nArray[i][np.isnan(nArray[i])]=0.
-                nArray[i][nArray[i]<=0]=1e-4
+                nArray[i][np.isnan(nArray[i])]=0. ## remove nan
+                nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
                 cnts=func(x,y,nArray[i],levels=levels,
                           cmap=cmap,norm=norm,zorder=10)
+
+                return x,y,nArray[i]
 
                 ## x, y coordinates of maximum intensity in grid
                 i0,j0 = indices_mx[i]
