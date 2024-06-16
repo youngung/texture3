@@ -1950,7 +1950,11 @@ class polefigure:
                 else:
                     norm = None
 
-                cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                try:
+                    cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                except:
+                    cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
+
                 color_mapping = matplotlib.cm.ScalarMappable(
                     norm=norm,cmap=cmap_mpl)
 
