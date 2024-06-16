@@ -724,6 +724,55 @@ def circle(center=[0,0], r=1.):
     y = y + center[0]
     return x,y
 
+def calc_vref_and_rot(a,b,csym,cdim,cang,nang=100):
+    from .sym import cv
+
+    aca=cv(a,cdim,cang)
+    bca=cv(b,cdim,cang)
+
+    vref=np.cross(aca,bca)
+
+    ##
+    thf=np.arccos(np.dot(aca,bca))
+    ths=np.linspace(0,thf,nang)
+    rots=np.zeros((nang,3,3))
+    varc=np.zeros((nang,3))
+
+    for i, th in enumerate(ths):
+        rots[i,:,:]=vector_ang(vref,np.rad2deg(th))
+    return aca, bca, thf, vref, rots
+
+def get_ipf_boundary(a,b,c,nres,csym,cdim,cang):
+    pairs=[[a,b],[b,c],[c,a]]
+    coords=np.zeros((2,(nres-1)*3+1))
+
+    for i, pair in enumerate(pairs[:3]):
+        aca,bca,thf,vref,rots=calc_vref_and_rot(*pair,csym,cdim,cang,nres)
+        varc=calc_arc(aca,rots)
+        xy=np.zeros((len(varc),2))
+        for j, point in enumerate(varc):
+            xy[j,:]=projection(point)
+        i0=i*(nres-1)
+        i1=i0+nres-1
+        coords[:,i0:i1]=xy[0:-1,:].T
+    coords[:,-1]=coords[:,0]
+    return coords
+
+def calc_arc(aca,rots):
+    """
+    Arguments
+    ---------
+    aca crystal direction
+    rots: rotation matrix
+    """
+    nang=rots.shape[0]
+    v_arc=np.zeros((nang,3))
+    for i,rot in enumerate(rots):
+        v_arc[i,:]=np.dot(rot,aca)
+    return v_arc
+
+
+
 def basic_triangle():
     """
     provide the boundary of basic triangle
@@ -941,7 +990,7 @@ def deco_pf(ax,cnt=None,miller=[0,0,0],
     # ax.set_aspect('equal')
 
 
-def projection(pole=None, agrain=None):
+def projection(pole=None):
     """
     Projects a pole (vector) to projection plane.
     (default is stereography projection)
@@ -951,10 +1000,9 @@ def projection(pole=None, agrain=None):
     The stereographic projection uses vectors pointing at
     southern hemisphere.
 
-    Arguments
-    ---------
+    Argument
+    --------
     pole = None
-    agrain = [ph1, phi, phi2, vf]
     """
     #normalization of the miller indices
     pole = pole / np.sqrt(pole[0]**2 + pole[1]**2 + pole[2]**2)
@@ -1675,15 +1723,13 @@ class polefigure:
 
         return xy, POLE
 
-    def pf_new(
-            self,ifig=None,axs=None,
-            poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
-            mode='line',
-            dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
-            lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
-            ideco_lev=True,
-            **kwargs):
+    def pf_new(self,ifig=None,axs=None,proj='pf',poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
+               mode='line',dth=10,dph=10,n_rim=2,cdim=None,ires=True,
+               mn=None,mx=None,lev_norm_log=True,nlev=7,ilev=1,levels=None,
+               cmap='magma',rot=0.,iline_khi80=False,
+               transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
+               ideco_lev=True,
+               **kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
         Note that upf.polefigure.pf is deprecated and will be deleted soon.
@@ -1694,44 +1740,40 @@ class polefigure:
             <ifig> and <axs> should be mutually exclusive.
             It is acceptable for both to be *not* specified.
             However, it is unacceptable for both to be specified.
-
+        <proj>
+           proj can be either 'pf' or 'ipf'. The former is the usual
+           pole figure, while 'ipf' refers to the inverse pole figure
         <poles>
            For cubics, three digits; for hexagonals four digits
         <ix>, <iy>
            x and y tick labels appended to each pole figure
         <dph>:
-            (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
+            Grid of tilting angle
         <dth>:
-            (rotation angle: -180,+180)
+            Grid of in-plane rotation angle
         <rot>:
              in-plane rotatation (radian)
-
         <n_rim>:
              The number of 'central' rims to be *averaged*.
              For better understandings, see the algorithm notebook
-             located in
-                ./ipynb/UPF_Algorithm.ipynb
-
+             located in ./ipynb/UPF_Algorithm.ipynb
         <cdim>:  crystal dimension
            For cubic, [1,1,1]
            For a particularly AZ31 sheet, it is [1,1,1.6235]
            Users should know what is the lattice dimension for the crystal
            structure of which he/she plots the pole figures.
-
         <ires>  = True;
            If True, indicate the grid
            If <mode> is 'fill' and ires is True, overlay the resolution
               all over the pole.
            if <mode> is 'line' and ires is True, only the spots lower than
               minimum level of contour is plotted.
-
         <mn>,<mx>
           minimum and maximum levels of contour
           If not specified, mn and mx is determined using levels of
           calculated contours
           if <mode> is 'fill', <mn> is overriden by the levels of
           calculated contours.
-
         <lev_norm_log>
            If True, use logarithmic scales. If False, linear scale.
         <nlev> = 7
@@ -1764,6 +1806,7 @@ class polefigure:
         import MP.lib.mpl_lib
         import matplotlib.cm
         from matplotlib.colors import LogNorm
+        from .sym import cv
 
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
@@ -1795,8 +1838,6 @@ class polefigure:
                 p[0] = p_[0]
                 p[1] = p_[1]
                 p[2] = p_[3]
-                # p[0] = p_[0] - p_[2]
-                # p[1] = p_[1] - p_[2]
                 pole_.append(p)
 
             poles = pole_[::]
@@ -1809,7 +1850,7 @@ class polefigure:
         if mode in ['line','contour','fill']:
             for i in range(len(poles)):
                 rst=cells_pf(
-                    pole_ca=poles[i],dth=dth,dph=dph,
+                    proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
                     cdim=self.cdim,grains=self.gr,
                     n_rim = n_rim,transform=transform)
@@ -1956,8 +1997,6 @@ class polefigure:
                     deco_pf(axs[i],cnts,miller[i],ideco_opt,
                             iskip_last=False,ix=ix,iy=iy,mode=mode)
 
-
-
                 ## pole
                 s='('
                 for k in range(len(miller[i])):
@@ -1983,8 +2022,6 @@ class polefigure:
                 except:
                     pass
 
-
-
             ## circle
             _x_,_y_ = __circle__()
             axs[i].plot(_x_,_y_,'k-')
@@ -1999,333 +2036,34 @@ class polefigure:
             axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
             axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
 
-        # try:
-        #     return fig
-        # except:
-        #     pass
-        if self.gr.shape[-1]>4:
-            return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
-        elif self.gr.shape[-1]==4:
-            try:
-                return fig
-            except:
-                pass
-        #--------------------------------------------------#
-
-
-        def ipf_new(
-            self,ifig=None,axs=None,
-            poles=[[1,0,0],[1,1,0]],ix='1',iy='2',
-            mode='line',
-            dth=10,dph=10,n_rim=2,cdim=None,ires=True,mn=None,mx=None,
-            lev_norm_log=True,nlev=7,ilev=1,levels=None,cmap='magma',
-            rot=0.,iline_khi80=False,transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
-            ideco_lev=True,
-            **kwargs):
-        """
-        New version of ipf that will succeed upf.polefigure.ipf
-
-        Arguments
-        ---------
-        <ifig> or <axs>
-            <ifig> and <axs> should be mutually exclusive.
-            It is acceptable for both to be *not* specified.
-            However, it is unacceptable for both to be specified.
-
-        <poles>
-           For cubics, three digits; for hexagonals four digits
-        <ix>, <iy>
-           x and y tick labels appended to each pole figure
-        <dph>:
-            (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
-        <dth>:
-            (rotation angle: -180,+180)
-        <rot>:
-             in-plane rotatation (radian)
-
-        <n_rim>:
-             The number of 'central' rims to be *averaged*.
-             For better understandings, see the algorithm notebook
-             located in
-                ./ipynb/UPF_Algorithm.ipynb
-
-        <cdim>:  crystal dimension
-           For cubic, [1,1,1]
-           For a particularly AZ31 sheet, it is [1,1,1.6235]
-           Users should know what is the lattice dimension for the crystal
-           structure of which he/she plots the pole figures.
-
-        <ires>  = True;
-           If True, indicate the grid
-           If <mode> is 'fill' and ires is True, overlay the resolution
-              all over the pole.
-           if <mode> is 'line' and ires is True, only the spots lower than
-              minimum level of contour is plotted.
-
-        <mn>,<mx>
-          minimum and maximum levels of contour
-          If not specified, mn and mx is determined using levels of
-          calculated contours
-          if <mode> is 'fill', <mn> is overriden by the levels of
-          calculated contours.
-
-        <lev_norm_log>
-           If True, use logarithmic scales. If False, linear scale.
-        <nlev> = 7
-           Level of iso contour bins.
-           The total number of lines will be nlev+1
-        <cmap>
-           Color map used to color-code the contour levels.
-           Refer to 'http://matplotlib.org/users/colormaps.html'
-           for more color-map options.
-        <iline_khi80> = False
-           Whether or not to draw a line of chi=80 in experimental
-           pole figure plot. - I usually obtain incomplete pole figure
-           upto a tilting <chi> of 80.
-        <mode>
-           Contour model: 'line' or 'fill' or 'dot', 'dotm'
-        <ilev>
-           level option: 0 common contour levels for all poles generated
-                         1 individual levels applied for individual poles
-        <levels>
-           Default is None. One can define levels of the contours.
-        <transform>
-           transformation matrix applied to the entire polycrystal aggregate.
-        <ideco_lev> True or False
-           switch to turn on or off the levels
-
-        Returns
-        -------
-        fig: matplotlib.figure.Figure
-        """
-        import MP.lib.mpl_lib
-        import matplotlib.cm
-        from matplotlib.colors import LogNorm
-
-        ## check mutually exclusive arguments (ifig and axs)
-        if type(ifig)!=type(None) and type(axs)!=type(None):
-            raise IOError('** Err: ifig and axs are mutually exclusive')
-
-        nlev = nlev + 1 ##
-        miller=poles[::]
-
-        if type(cdim)!=type(None): self.cdim=cdim
-        ## 4 digits miller indices are used for hexagon and trigo
-        if self.csym=='hexag' or self.csym=='trigo':
-            pole_=[]
-            for i in range(len(poles)):
-                p  = [0,0,0]
-                p_ = poles[i]
-                if len(p_)!=4: raise IOError('4 digits should be given')
-                p[0] = p_[0]
-                p[1] = p_[1]
-                p[2] = p_[3]
-                pole_.append(p)
-            poles = pole_[::]
-
-        tiny = 1.e-9
-        N=[]
-        if self.gr.shape[-1]>4: Ncol=[]
-
-        t0=time.time()
-        if mode in ['line','contour','fill']:
-            for i in range(len(poles)):
-                rst=cells_pf(
-                    pole_ca=poles[i],dth=dth,dph=dph,
-                    csym=self.csym,cang=self.cang,
-                    cdim=self.cdim,grains=self.gr,
-                    n_rim = n_rim,transform=transform)
-                if self.gr.shape[-1]>4:
-                    N.append(rst[0])
-                    Ncol.append(rst[1])
-                else:
-                    N.append(rst)
-
-
-            et = time.time()-t0
-            try:
-                uet(et,head='Elapsed time for calling cells_pf')
-            except:pass
-
-            x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
-            y_node = np.arange(   0., 90.+tiny,dph) ## tilting (half-sphere)
-            XN, YN = np.meshgrid(x_node,y_node)
-
-            #--------------------------------------------------#
-            ## plotting / resolution
-            nm     = int((360.0 - 0.)/dth) ## in-plane rotation
-            nn     = int((180. - 90.)/dph) ## tilting
-            theta  = np.linspace(pi, pi/2., nn+1)
-            phi    = np.linspace(0., 2.*pi, nm+1)
-            r      = np.sin(theta)/(1-np.cos(theta))
-            R, PHI = np.meshgrid(r,phi)
-            PHI    = PHI + rot ## default: rot=0.
-            x      = R*np.cos(PHI); y = R*np.sin(PHI)
-
-            nArray=np.array(N)
-            xyCoords=np.array([x,y])
-            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
-
-        elif mode in ['dot','dotm']:
-
-            pf_dots=[]
-            for ip in range(len(poles)):
-                P=[]
-                ## multiple crystal poles after reflecting crystal symmetries
-                p0 = __equiv__(miller=poles[ip],csym=self.csym,
-                               cdim=self.cdim,cang=self.cang)
-                P=np.zeros((len(p0)*2,3))
-                P[:len(p0),:]= p0[:,:]
-                P[len(p0):,:]=-p0[:,:]
-                poles_ca=P/np.sqrt(P**2).sum()
-                poles_sa=np.zeros((len(self.gr),len(poles_ca),3))
-                for i in range(len(self.gr)):
-                    phi1,phi,phi2,wgt = self.gr[i][:4]
-                    amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-                    amat=amat.T ## sa<-ca
-                    if (transform==np.identity(3)).all(): pass
-                    else: amat=np.dot(transform,amat)
-                    for j in range(len(poles_ca)):
-                        poles_sa[i,j,:]=np.dot(amat,poles_ca[j])
-                poles_sa  = poles_sa.reshape( (len(self.gr)*len(poles_ca),3))
-                XY=[]
-                for i in range(len(poles_sa)):
-                    x,y=projection(pole=poles_sa[i])
-                    if x**2+y**2<=1+1e-3:
-                        y=-y
-                        x=-x
-                        XY.append([x,y])
-                pf_dots.append(np.array(XY))
-
-            pf_dots=np.array(pf_dots,dtype='object')
-            et = time.time()-t0
-            if mode=='dotm': return pf_dots
-
-            try:
-                uet(et,head='Elapsed time for calculting dots')
-            except: pass
-        else:
-            raise IOError('Unexpected mode given to pf_new')
-
-        if type(axs)==type(None):
-            if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
-            else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
-            ##
-            axs=np.empty(len(poles),dtype='object')
-            for i in range(len(poles)):
-                axs[i] = fig.add_subplot(1,len(poles),i+1)
-            plt.subplots_adjust(left=0,right=0.8)
-
-        for i in range(len(poles)):
-            if mode in ['line','contour','fill']:
-                if type(levels)==type(None):
-                    if lev_norm_log:
-                        ## To prevent log (0) -> np.nan
-                        ## hardwire minimum value
-                        if mns[i]==0: mns[i] = 0.5
-                        levels = np.logspace(
-                            np.log10(mns[i]),np.log10(mxs[i]),nlev)
-                        norm = LogNorm()
-                    else:
-                        levels = np.linspace(mns[i],mxs[i],nlev)
-                        norm = None
-                else:
-                    norm = None
-
-                cmap_mpl = matplotlib.cm.get_cmap(cmap)
-                color_mapping = matplotlib.cm.ScalarMappable(
-                    norm=norm,cmap=cmap_mpl)
-
-                if   mode=='line': func = axs[i].contour
-                elif mode in ['fill', 'contour']: func = axs[i].contourf
-
-                ## contour plot
-                nArray[i][np.isnan(nArray[i])]=0.
-                nArray[i][nArray[i]<=0]=1e-4
-                cnts=func(x,y,nArray[i],levels=levels,
-                          cmap=cmap,norm=norm,zorder=10)
-
-                ## x, y coordinates of maximum intensity in grid
-                i0,j0 = indices_mx[i]
-                mx_coord_x = x[i0,j0]
-                mx_coord_y = y[i0,j0]
-
-                if mode=='line':
-                    axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
-                                color=color_mapping.to_rgba(levels[-1]))
-
-                if ires:# and mode!='fill':
-                    xs=[];ys=[]
-                    filt = nArray[i,:,:]<levels[0]
-                    filt[0,1:]=False
-                    filt[1:,0]=False
-                    xs=x[filt]; ys=y[filt]
-                    if len(xs)>0:
-                        axs[i].plot(
-                            xs,ys,'k.',
-                            alpha=0.17*len(poles),
-                            markersize=2.0)
-                # if ires and mode=='fill': ## overlay the resolution
-                #     axs[i].plot(x,y,'k+',
-                #                 alpha=0.17*len(poles),
-                #                 markersize=2.0,zorder=100)
-
-                if ideco_lev:
-                    ideco_opt=0
-                else:
-                    ideco_opt=1
-
-                if ilev==1 or (ilev==0 and i==len(axs)-1):
-                    deco_pf(axs[i],cnts,miller[i],ideco_opt,
-                            iskip_last=False,ix=ix,iy=iy,mode=mode)
-
-
-
-                ## pole
-                s='('
-                for k in range(len(miller[i])):
-                    if miller[i][k]<0: h = r'\bar{%s}'%str(-1*miller[i][k])
-                    else: h = '%s'%str(miller[i][k])
-                    s='%s%s'%(s,h)
-                s='%s)'%s
-                s=r'$\mathbf{%s}$'%s
-                #s=rf'${s}$'
-                axs[i].text(0.6,-0.95,s,fontsize=12)
-
-            if mode in ['dot']:
-                if ideco_lev:
-                    ideco_opt=0
-                else:
-                    ideco_opt=1
-                x=pf_dots[i][:,0]
-                y=pf_dots[i][:,1]
-                axs[i].scatter(x,y,**kwargs)
-                try:
-                    deco_pf(axs[i],None,miller[i],ideco_opt,
-                            iskip_last=False,ix=ix,iy=iy,mode=mode)
-                except:
+            ## if ipf proj
+            if proj=='ipf':
+                if self.csym=='cubic':
+                    a=[0,0,1]
+                    b=[1,0,1]
+                    c=[1,1,1]
+                elif self.csym=='hexag':
                     pass
+                else:
+                    raise IOError('need to validate other crystal symmetries.')
+
+                a=cv(a,cdim=self.cdim,cang=self.cang)
+                b=cv(b,cdim=self.cdim,cang=self.cang)
+                c=cv(c,cdim=self.cdim,cang=self.cang)
+
+                print('\n---')
+                print(f'a: {a}')
+                print(f'b: {b}')
+                print(f'c: {c}')
+                print('---\n')
+
+                # coords=get_ipf_boundary(a,b,c,10,self.csym,self.cdim,self.cang)
+                # print('coords:')
+                # print(coords)
+
+                # #axs[i].plot(*coords.T,'ok',alpha=0.5)
 
 
-
-            ## circle
-            _x_,_y_ = __circle__()
-            axs[i].plot(_x_,_y_,'k-')
-            axs[i].set_axis_off()
-            axs[i].set_xlim(-1.1,1.4)
-            axs[i].set_ylim(-1.1,1.4)
-            axs[i].set_aspect('equal')
-
-            ## axis label/    ## Ticks
-            axs[i].text(1.15,0. ,ix,va='center',ha='center')
-            axs[i].text(0. ,1.15,iy,va='center',ha='center')
-            axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
-            axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
-
-        # try:
-        #     return fig
-        # except:
-        #     pass
         if self.gr.shape[-1]>4:
             return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
         elif self.gr.shape[-1]==4:
@@ -2334,6 +2072,7 @@ class polefigure:
             except:
                 pass
         #--------------------------------------------------#
+
 
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
@@ -2555,13 +2294,15 @@ class polefigure:
         return np.array(XY),fig
 
 def cells_pf(
-        pole_ca=[1,0,0],
+        proj='pf',
+        pole=[1,0,0],
         dph=7.5,
-        dth =7.5,
+        dth=7.5,
         csym=None,
         cang=[90.,90.,90.],
         cdim=[1.,1.,1.],
-        grains=None,n_rim=2,
+        grains=None,
+        n_rim=2,
         transform=np.identity(3)):
     """
     Creates cells gridded in the dimension of (nphi, ntheta)
@@ -2569,53 +2310,99 @@ def cells_pf(
     weight is assigned to the cell to which it belongs.
     Plots the cell's weight and returns the cell in array.
 
-    + Additional feature (2025-05-28)
+    + Additional feature (2024-05-28)
     Some more updates that I'm trying to implement here is to visualize
     some other 'scalar' quantities that come along with the form of discrete orientation files.
     Conventionally, 'texture' file has only 4 columns, consisting of phi1, phi, phi2, and weight.
     The case that I'd like to deal here is to use the additional columns denoting, say, stored
     energy, in the form of pole figure.
 
+    + Additional feature (2024-06)
+    I plan to use this module for both pole figures and inverse pole figures
+
     ---------
     Arguments
     ---------
-    pole_ca = [1,0,0]
-    dph  = 7.5. (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
-    dth  = 7.5. (rotation angle: -180,+180)
-    csym = None
-    cang = [90.,90.,90.]
-    grains = None, [] array shape: (ngr, 3)
-    n_rim=2
-    transform
+    <proj> can be either 'pf' or 'ipf'
+    <pole_ca> = [1,0,0]
+    <dph>  = 7.5. (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
+    <dth>  = 7.5. (rotation angle: -180,+180)
+    <csym> = None
+    <cang> = [90.,90.,90.]
+    <grains> = None, [] array shape: (ngr, 3)
+    <n_rim>=2
+    <transform>: the default is np.identity(3)
+
+
+    **
+    For the case of <proj>='pf', you can create
     """
+    from . import sym
+
     tiny = 1e-9
     ## Set of equivalent vectors based on crystal symmetry
-    p0 = __equiv__(miller=pole_ca,csym=csym,cdim=cdim,cang=cang)
-    poles_ca=np.zeros((len(p0)*2,3))
-    poles_ca[:len(p0),:] = p0[:,:]
-    poles_ca[len(p0):,:] =-p0[:,:]
-    poles_ca = poles_ca / np.sqrt((poles_ca**2).sum())
-    poles_sa  = np.zeros((len(grains),len(poles_ca),3))
-    poles_wgt = np.zeros((len(grains),len(poles_ca)))
-    poles_col = np.zeros((len(grains),len(poles_ca),grains.shape[-1]-4))
+    pole=np.array(pole)
+    if proj=='pf':
+        p0 = __equiv__(miller=pole,csym=csym,cdim=cdim,cang=cang)
+        poles_ca=np.zeros((len(p0)*2,3))
+        # both forward and backward poles
+        poles_ca[:len(p0),:] = p0[:,:] # (+)
+        poles_ca[len(p0):,:] =-p0[:,:] # (-)
+        poles_ca         = poles_ca / np.sqrt((poles_ca**2).sum())
+        ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
+        poles_projected  = np.zeros((len(grains),len(poles_ca),3))
+        poles_wgt        = np.zeros((len(grains),len(poles_ca)))
+        poles_col        = np.zeros((len(grains),len(poles_ca),grains.shape[-1]-4))
 
-    for i, gr in enumerate(grains):
-        phi1,phi,phi2,wgt = gr[:4]
-        amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-        amat=amat.T ## sa<-ca
-        if (transform==np.identity(3)).all():pass
-        else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
+        for i, gr in enumerate(grains):
+            phi1,phi,phi2,wgt = gr[:4]
+            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+            amat=amat.T ## sa<-ca
+            if (transform==np.identity(3)).all():pass
+            else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
 
-        ## multiple crystal poles may exist for each given (hkl)
-        ## due to the crystal symmetry
-        for j, pole_ca in enumerate(poles_ca):
-            poles_sa[i,j,:] = np.dot(amat,pole_ca)
-            poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
-        poles_wgt[i,:]  = wgt
+            ## multiple crystal poles may exist for each given (hkl)
+            ## due to the crystal symmetry
+            for j, pole_ca in enumerate(poles_ca):
+                poles_projected[i,j,:] = np.dot(amat,pole_ca)
+                poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
+            poles_wgt[i,:]  = wgt
 
-    poles_sa  = poles_sa.reshape( (len(grains)*len(poles_ca),3))
-    poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
-    poles_col = poles_col.reshape((len(grains)*len(poles_ca),grains.shape[-1]-4))
+        poles_projected  = poles_projected.reshape( (len(grains)*len(poles_ca),3))
+        poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
+        poles_col = poles_col.reshape((len(grains)*len(poles_ca),grains.shape[-1]-4))
+    elif proj=='ipf':
+        ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
+
+        # Now, in this case, pole is referring to sample direction.
+        if csym!='cubic':
+            raise IOError('** only cubic works.')
+        H=sym.cubic()
+        nsymop=H.shape[0]
+        print(f'\nnsymop in cells_pf: {nsymop}')
+        # empty np arrays
+        poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
+        poles_wgt        = np.zeros((len(grains),nsymop*2))
+        poles_col        = np.zeros((len(grains),nsymop*2,grains.shape[-1]-4))
+        for i, gr in enumerate(grains):
+            phi1,phi,phi2,wgt=gr[:4]
+            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+            pole_ca=np.dot(amat, np.array(pole))## ca<-sa, sa
+            for j, h in enumerate(H): # ca(new)<-ca(old)
+                poles_projected[i,j*2,  :]=np.dot(h, pole_ca)
+                poles_projected[i,j*2+1,:]=np.dot(h,-pole_ca)
+                poles_col[i,j*2,:]=gr[4:]
+                poles_col[i,j*2+1,:]=gr[4:]
+            poles_wgt[i,:] = wgt
+
+        #poles_projected[:,nsymop:2*nsymop,:]=-poles_projected[:,0:nsymop,:]
+        #poles_col[:,nsymop:2*nsymop]=poles_col[:,0:nsymop]
+        #poles_wgt[:,nsymop:2*nsymop]=poles_wgt[:,0:nsymop]
+        ## reshaping
+        poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
+        poles_wgt=poles_wgt.reshape( (len(grains)*nsymop*2))
+        poles_col=poles_col.reshape( (len(grains)*nsymop*2,grains.shape[-1]-4))
+
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
@@ -2629,8 +2416,7 @@ def cells_pf(
     y_node = np.arange(   0., 90.+tiny,dph) ## tilting
     nx_node = len(x_node); ny_node = len(y_node)
     nodes = np.zeros((nx_node,ny_node))
-    f = pole2f(poles_sa,poles_wgt,dth,dph,f.copy())
-
+    f = pole2f(poles_projected,poles_wgt,dth,dph,f.copy())
 
     ## Normalization (m.u.r)
     fsum=f[:,:int(ny/2)].flatten().sum() ## sum of weights on the half-sphere
@@ -2641,9 +2427,6 @@ def cells_pf(
     fnorm = dcosz*dx_/(2*np.pi)
     f_ori=f.copy() # without normalization
     f     = f/fnorm/fsum
-    #for i in range(nx): # in-plane rotation
-    #    f[i,:]=f[i,:]/fnorm[:]
-    #    f[i,:]=f[i,:]/fsum
 
     ## Extension of f_bounds - see algorithm ipynb
     f_bounds = np.zeros((nx+2,ny+2))
@@ -2659,15 +2442,9 @@ def cells_pf(
     ncols=grains.shape[-1]## addition to the pole weights
     if ncols>4:
         fcol=np.zeros((nx,ny,ncols-4))
-        fcol = pole2f_cols(poles_sa,
+        fcol = pole2f_cols(poles_projected,
                            poles_wgt,poles_col,f_ori,
                            dth,dph,fcol.copy())
-        # print(f'** fcol.shape: {fcol.shape}')
-        # for icol in range(ncols-4):
-        #     print(f'icol:{icol+1}')
-        #     print(f'fcol[:,:,icol].flatten().max(): {fcol[:,:,icol].flatten().max()}')
-        #     print(f'fcol[:,:,icol].flatten().min(): {fcol[:,:,icol].flatten().min()}')
-        #     print('--')
 
         ## Extension of f_bounds - see algorithm ipynb
         f_bounds_col = np.zeros((nx+2,ny+2,ncols-4))
@@ -2680,20 +2457,14 @@ def cells_pf(
             f_bounds_col[  -1,   0,icol]=f_bounds_col[-1,-2,icol]
             f_bounds_col[   :,  -1,icol]=f_bounds_col[ :, 1,icol]
         nodes_col = np.zeros((*nodes.shape,ncols-4))
-        # print(f'nodes_col.shape: {nodes_col.shape}')
-    ## Use average of the four adjacent neighbouring nodes of pole figures
 
+    ## Use average of the four adjacent neighbouring nodes of pole figures
     for i in range(len(nodes)):
         for j in range(len(nodes[i])):
             nodes[i,j] = (f_bounds[i:i+2,j:j+2]).sum()/4.
             if ncols>4:
                 for icol in range(ncols-4):
                     nodes_col[i,j,icol] = (f_bounds_col[i:i+2,j:j+2,icol]).sum()/4.
-
-    # for icol in range(ncols-4):
-    #     print(f'{icol+1} coloumn')
-    #     print(f'nodes_col[:,:,icol].flatten().min: {nodes_col[:,:,icol].flatten().min()}')
-    #     print(f'nodes_col[:,:,icol].flatten().max: {nodes_col[:,:,icol].flatten().max()}')
 
     ## Centeral region is using an avergage around the rim
     for i in range(n_rim):
@@ -2702,7 +2473,7 @@ def cells_pf(
             for icol in range(ncols-4):
                 nodes_col[:,i,icol]=(nodes_col[:,i,icol].sum())/len(nodes_col[:,i,icol])
 
-    if ncols>4:
+    if ncols>4: # for those files in which columns in additon to (phi1, phi, phi2, wgt) are given
         return nodes, nodes_col
     else:
         return nodes
@@ -2794,7 +2565,6 @@ def __equiv__(miller=None, csym=None,
     #print 'elapsed time during the rest: %8.6f'%
     #(time.time()-start)
     return np.array(stacked)
-
 
 ### Excutes the module in the command line with arguments and options
 def main(filename, pfmode, gr, csym):
