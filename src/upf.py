@@ -1829,7 +1829,7 @@ class polefigure:
 
         if type(cdim)!=type(None): self.cdim=cdim
         ## 4 digits miller indices are used for hexagon and trigo
-        if self.csym=='hexag' or self.csym=='trigo':
+        if (self.csym=='hexag' or self.csym=='trigo') and proj=='pf':
             pole_=[]
             for i in range(len(poles)):
                 p  = [0,0,0]
@@ -1839,7 +1839,6 @@ class polefigure:
                 p[1] = p_[1]
                 p[2] = p_[3]
                 pole_.append(p)
-
             poles = pole_[::]
 
         tiny = 1.e-9
@@ -2381,9 +2380,12 @@ def cells_pf(
         ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
 
         # Now, in this case, pole is referring to sample direction.
-        if csym!='cubic':
-            raise IOError('** only cubic works.')
-        H=sym.cubic()
+        if csym=='cubic':
+            H=sym.cubic()
+        elif csym=='hexag':
+            H=sym.hexag()
+        else:
+            raise IOError('Not valid symmetry for pf')
         nsymop=H.shape[0]
         print(f'\nnsymop in cells_pf: {nsymop}')
         # empty np arrays

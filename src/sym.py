@@ -278,7 +278,7 @@ def hexag():
     for i in range(len(HS)):
         H.append(HS[i])
 
-    return H
+    return np.array(H)
 
 ## orthorhombic
 def ortho():
