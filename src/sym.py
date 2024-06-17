@@ -402,11 +402,30 @@ def cvec(cdim=None, cang=None):
     return cvec
 
 
-def cv(pole, cdim=None, cang=None):
+def cv(p, icsym=None, cdim=None, cang=None):
     """
-    Creats vector of the (plane normal) pole taking care of its unit cell's
+    Creates a vector of the (plane normal) pole taking care of its unit cell's
     dimension and axes' angles.
+
+    Arguments
+    ---------
+    pole : miller indexed pole
+    icsym: 1 (cubic), 2 (hexag), 3 (trigo), 4 (tetra), 5 (ortho), 6 (monoc), 7 (tricl)
     """
+    if type(icsym)==type(None):
+        raise IOError('icsym should be given to <sym.cv>')
+
+    pole=p.copy()
+
+    if icsym==2 or icsym==3:
+        pole[2]=pole[3]
+
+        # below is for 'directions' not for plane normals.
+        # pole[0]=pole[0]-pole[2]
+        # pole[1]=pole[1]-pole[2]
+        # pole[2]=pole[3]
+
+
     sqrt = np.sqrt
     cvect = cvec(cdim=cdim, cang=cang)
 
