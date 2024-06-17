@@ -727,8 +727,10 @@ def circle(center=[0,0], r=1.):
 def calc_vref_and_rot(a,b,csym,cdim,cang,nang=100):
     from .sym import cv
 
-    aca=cv(a,cdim,cang)
-    bca=cv(b,cdim,cang)
+    icsym=get_icsym(csym)
+
+    aca=cv(a,icsym,cdim,cang)
+    bca=cv(b,icsym,cdim,cang)
 
     vref=np.cross(aca,bca)
 
@@ -1829,17 +1831,17 @@ class polefigure:
 
         if type(cdim)!=type(None): self.cdim=cdim
         ## 4 digits miller indices are used for hexagon and trigo
-        if (self.csym=='hexag' or self.csym=='trigo') and proj=='pf':
-            pole_=[]
-            for i in range(len(poles)):
-                p  = [0,0,0]
-                p_ = poles[i]
-                if len(p_)!=4: raise IOError('4 digits should be given')
-                p[0] = p_[0]
-                p[1] = p_[1]
-                p[2] = p_[3]
-                pole_.append(p)
-            poles = pole_[::]
+        # if (self.csym=='hexag' or self.csym=='trigo') and proj=='pf':
+        #     pole_=[]
+        #     for i in range(len(poles)):
+        #         p  = [0,0,0]
+        #         p_ = poles[i]
+        #         if len(p_)!=4: raise IOError('4 digits should be given')
+        #         p[0] = p_[0]
+        #         p[1] = p_[1]
+        #         p[2] = p_[3]
+        #         pole_.append(p)
+        #     poles = pole_[::]
 
         tiny = 1.e-9
         N=[]
@@ -1966,7 +1968,7 @@ class polefigure:
                 cnts=func(x,y,nArray[i],levels=levels,
                           cmap=cmap,norm=norm,zorder=10)
 
-                return x,y,nArray[i]
+                if proj=='ipf': return x,y,nArray[i]
 
                 ## x, y coordinates of maximum intensity in grid
                 i0,j0 = indices_mx[i]
@@ -2052,9 +2054,11 @@ class polefigure:
                 else:
                     raise IOError('need to validate other crystal symmetries.')
 
-                a=cv(a,cdim=self.cdim,cang=self.cang)
-                b=cv(b,cdim=self.cdim,cang=self.cang)
-                c=cv(c,cdim=self.cdim,cang=self.cang)
+                icsym=get_icsym(self.csym)
+
+                a=cv(a,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                b=cv(b,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                c=cv(c,icsym=icsym,cdim=self.cdim,cang=self.cang)
 
                 print('\n---')
                 print(f'a: {a}')
@@ -2384,6 +2388,8 @@ def cells_pf(
             H=sym.cubic()
         elif csym=='hexag':
             H=sym.hexag()
+        elif csym=='ortho':
+            H=sym.ortho()
         else:
             raise IOError('Not valid symmetry for pf')
         nsymop=H.shape[0]
@@ -2503,7 +2509,7 @@ def __equiv__(miller=None, csym=None,
     """
     start = time.time()
     from .sym import cv
-    from .sym import cubic, hexag
+    # from .sym import cubic, hexag, get_icsym, ortho
     #from sym_cy import cubic, hexag
     from . import sym    #python compiled
     #import sym_cy #cython compiled
@@ -2513,14 +2519,16 @@ def __equiv__(miller=None, csym=None,
     vect = np.array(miller)
     norm = 0.; sneq = []
     temp = vect.copy()
-    #start = time.time()
+
+    icsym=sym.get_icsym(csym)
+
     if csym=='cubic':
         H = sym.cubic()  #operators
         for i in range(len(H)):
             sneq.append(np.dot(H[i], vect))
     elif csym=='hexag':
         H = sym.hexag() #operators
-        v = cv(pole=vect, cdim=cdim, cang=cang)
+        v = cv(p=vect, icsym=icsym,cdim=cdim, cang=cang)
         sneq=np.zeros((len(H),3))
         for m in range(len(H)):
             aux33=H[m].copy()
@@ -2531,7 +2539,7 @@ def __equiv__(miller=None, csym=None,
             sneq[m,:]=bux3[:]
     elif csym=='ortho':
         H = sym.ortho()  #operators
-        v = cv(pole=vect, cdim=cdim, cang=cang)
+        v = cv(p=vect, icsym=icsym,cdim=cdim, cang=cang)
         sneq=np.zeros((len(H),3))
         for m in range(len(H)):
             aux33=H[m].copy()

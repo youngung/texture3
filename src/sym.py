@@ -305,7 +305,7 @@ def ortho():
     h=np.identity(3)
     h[1,1]=-1
     H.append(h)
-    return H
+    return np.array(H)
 
 ## trigonal
 def trigo():
@@ -401,6 +401,31 @@ def cvec(cdim=None, cang=None):
 
     return cvec
 
+def get_icsym(crysym):
+    """
+    Covert cysym to icrysym to be compatible with 'crystal_symmetry.f' syntax.
+
+    Argument
+    --------
+    crysym
+
+    Returns
+    -------
+    icrysym
+    """
+    icrysym=0
+    if crysym[:5].lower()=='cubic': icrysym=1
+    if crysym[:5].lower()=='hexag': icrysym=2
+    if crysym[:5].lower()=='trigo': icrysym=3
+    if crysym[:5].lower()=='tetra': icrysym=4
+    if crysym[:5].lower()=='ortho': icrysym=5
+    if crysym[:5].lower()=='monoc': icrysym=6
+    if crysym[:5].lower()=='tricl': icrysym=7
+
+
+    if icrysym==0:
+        raise IOError(f'Unexpected crysym is given {crysym}')
+    return icrysym
 
 def cv(p, icsym=None, cdim=None, cang=None):
     """
