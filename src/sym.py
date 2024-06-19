@@ -13,6 +13,11 @@ def triclinic()
 import numpy as np
 import time
 ## symmetry operators
+
+
+
+
+
 def __60_120_rot111__(h):
     """
     For the given h operation,
@@ -450,7 +455,6 @@ def cv(miller, icsym=None, cdim=None, cang=None):
         # pole[1]=pole[1]-pole[2]
         # pole[2]=pole[3]
 
-
     sqrt = np.sqrt
     cvect = cvec(cdim=cdim, cang=cang)
 
@@ -464,3 +468,47 @@ def cv(miller, icsym=None, cdim=None, cang=None):
         s[i] = s[i]/norm
         if abs(s[i])<1e-6: s[i]=0.
     return s
+
+
+def read_fnsx(fnsx):
+    """
+    Read the single crystal file, and return crystal symmetry
+    including other dimensions such as 'cang' and 'cdim'.
+
+    Argument
+    --------
+    fnsx
+
+    Returns
+    -------
+    csym
+    cang
+    cdim
+    """
+    with open(fnsx,'r',errors="ignore") as fo:
+        lines=fo.read().split('\n')[:20]
+
+    csym=lines[1].split()[0][:5].lower()
+    cdim=np.array(lines[2].split()[:3],dtype='float')
+    cang=np.array(lines[2].split()[3:6],dtype='float')
+    return csym, cdim, cang
+
+def calc_cvec(miller,fnsx):
+    """
+    Get a crystal vector of a Miller-indexed "plane" normal
+
+    Arguments
+    ---------
+    miller: Miller-indexed crystal plane
+    fnsx: Name of single crystal file used in VPSC or dEVPSC code
+        from which the crystallographic information is obtained.
+
+    Returns
+    -------
+    The normal vector of the given crystal plane (hkl).
+    """
+    # from TX import sym
+    csym,cdim,cang = read_fnsx(fnsx)
+    icsym=get_icsym(csym)
+    _p_=cv(miller,icsym,cdim,cang)
+    return _p_
