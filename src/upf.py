@@ -729,8 +729,8 @@ def calc_vref_and_rot(a,b,csym,cdim,cang,nang=100):
 
     icsym=get_icsym(csym)
 
-    aca=cv(a,icsym,cdim,cang)
-    bca=cv(b,icsym,cdim,cang)
+    aca=cv(miller=a,icsym=icsym,cdim=cdim,cang=cang)
+    bca=cv(miller=b,icsym=icsym,cdim=cdim,cang=cang)
 
     vref=np.cross(aca,bca)
 
@@ -2045,33 +2045,32 @@ class polefigure:
 
             ## if ipf proj
             if proj=='ipf':
+                ## determine the three poles that define the fundamental zones.
                 if self.csym=='cubic':
                     a=[0,0,1]
                     b=[1,0,1]
                     c=[1,1,1]
                 elif self.csym=='hexag':
-                    pass
+                    a=[0,0,0,2]
+                    b=[1,0,-1,0]
+                    c=[2,-1,-1,0]
+                elif self.csym=='ortho':
+                    a=[0,0,1]
+                    b=[1,0,0]
+                    c=[0,1,0]
                 else:
                     raise IOError('need to validate other crystal symmetries.')
 
                 icsym=get_icsym(self.csym)
-
-                a=cv(a,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                b=cv(b,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                c=cv(c,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
 
                 print('\n---')
                 print(f'a: {a}')
                 print(f'b: {b}')
                 print(f'c: {c}')
                 print('---\n')
-
-                # coords=get_ipf_boundary(a,b,c,10,self.csym,self.cdim,self.cang)
-                # print('coords:')
-                # print(coords)
-
-                # #axs[i].plot(*coords.T,'ok',alpha=0.5)
-
 
         if self.gr.shape[-1]>4:
             return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
@@ -2524,11 +2523,22 @@ def __equiv__(miller=None, csym=None,
 
     if csym=='cubic':
         H = sym.cubic()  #operators
-        for i in range(len(H)):
-            sneq.append(np.dot(H[i], vect))
+        if False:
+            for i in range(len(H)):
+                sneq.append(np.dot(H[i], vect))
+        else:
+            v = cv(miller=vect,icsym=icsym,cdim=cdim,cang=cang)
+            sneq=np.zeros((len(H),3))
+            for m in range(len(H)):
+                aux33=H[m].copy()
+                bux3=np.zeros((3))
+                for i in range(3):
+                    for j in range(3):
+                        bux3[i]=bux3[i]+aux33[i,j]*v[j]
+                sneq[m,:]=bux3[:]
     elif csym=='hexag':
         H = sym.hexag() #operators
-        v = cv(p=vect, icsym=icsym,cdim=cdim, cang=cang)
+        v = cv(miller=vect, icsym=icsym,cdim=cdim, cang=cang)
         sneq=np.zeros((len(H),3))
         for m in range(len(H)):
             aux33=H[m].copy()
@@ -2539,7 +2549,7 @@ def __equiv__(miller=None, csym=None,
             sneq[m,:]=bux3[:]
     elif csym=='ortho':
         H = sym.ortho()  #operators
-        v = cv(p=vect, icsym=icsym,cdim=cdim, cang=cang)
+        v = cv(miller=vect, icsym=icsym,cdim=cdim, cang=cang)
         sneq=np.zeros((len(H),3))
         for m in range(len(H)):
             aux33=H[m].copy()

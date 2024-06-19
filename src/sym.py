@@ -427,7 +427,7 @@ def get_icsym(crysym):
         raise IOError(f'Unexpected crysym is given {crysym}')
     return icrysym
 
-def cv(p, icsym=None, cdim=None, cang=None):
+def cv(miller, icsym=None, cdim=None, cang=None):
     """
     Creates a vector of the (plane normal) pole taking care of its unit cell's
     dimension and axes' angles.
@@ -440,7 +440,7 @@ def cv(p, icsym=None, cdim=None, cang=None):
     if type(icsym)==type(None):
         raise IOError('icsym should be given to <sym.cv>')
 
-    pole=p.copy()
+    pole=miller.copy()
 
     if icsym==2 or icsym==3:
         pole[2]=pole[3]
