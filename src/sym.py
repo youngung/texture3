@@ -512,3 +512,46 @@ def calc_cvec(miller,fnsx):
     icsym=get_icsym(csym)
     _p_=cv(miller,icsym,cdim,cang)
     return _p_
+
+
+
+def calc_vref_and_rot(a,b,fnsx,nang):
+    """
+    Given a miller-indexed crystal plane normal (a and b),
+    calclulate the v ref and rotation matrices vref.
+
+    This is used mainly to obtain the great circle that passes through
+    the given a and b poles that are in Miller index. The crystal symmetry
+    information from <fnsx> is used to construct the cartesian vectors
+    out of the two miller-indexed poles (i.e., a and b).
+
+    Arguments
+    ---------
+    a      : miller-indexed plane normal (hkl)
+    b
+    fnsx
+    nang
+
+    Returns
+    -------
+    aca   : cartesian vector of the given Miller-indexed 'a' pole (plane-normal)
+    bca   : cartesian vector of the given Miller-indexed 'b' pole (plane-normal)
+    thf   : the maximum rotation angle that connects <aca> to <bca>
+    vref  : the axis about which the rotation occurs to connect aca and bca via the great circle.
+    rots  : rotation matrices in the shape of (nang, 3, 3). 'nang' is the number of
+            increments of the total rotation that connects aca to bca along the great circle.
+    """
+    from . import bcc_rolling_fiber
+    aca=-calc_cvec(miller=a,fnsx=fnsx)
+    bca=-calc_cvec(miller=b,fnsx=fnsx)
+    vref=np.cross(aca,bca)
+
+    ##
+    thf=np.arccos(np.dot(aca,bca))
+    ths=np.linspace(0,thf,nang)
+    rots=np.zeros((nang,3,3))
+    varc=np.zeros((nang,3))
+
+    for i, th in enumerate(ths):
+        rots[i,:,:]=bcc_rolling_fiber.vector_ang(vref,np.rad2deg(th))
+    return aca, bca, thf, vref, rots

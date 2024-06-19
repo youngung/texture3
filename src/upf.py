@@ -2735,3 +2735,150 @@ def axes2transf(x,y):
     print('yv:',yv)
     print('zv:',zv)
     return mat
+
+
+
+def xy_grid_from_shape(shape):
+    """
+    Obtain x,y grid of sphere on which (inverse) pole figures
+    are drawn. Use 'shape' of gridded weight array, which might
+    have been 'refined'.
+
+    Argument
+    --------
+    shape
+
+    Returns
+    -------
+    x,y
+    """
+    pi=np.pi
+    nm,nn=np.array(shape,dtype='int')-1
+    theta  = np.linspace(pi, pi/2., nn+1)
+    phi    = np.linspace(0., 2.*pi, nm+1)
+    r      = np.sin(theta)/(1-np.cos(theta))
+    R, PHI = np.meshgrid(r,phi)
+    x      = R*np.cos(PHI); y = R*np.sin(PHI)
+    return x,y
+
+
+def calc_arc(aca,rots):#a,b,fnsx,nang):
+    """
+    Arguments
+    ---------
+    aca crystal direction
+    rots: rotation matrix
+
+    Returns
+    -------
+    v_arc
+    """
+    nang=rots.shape[0]
+    v_arc=np.zeros((nang,3))
+    for i,rot in enumerate(rots):
+        v_arc[i,:]=np.dot(rot,aca)
+    return v_arc
+
+
+
+
+
+
+def proj(a):
+    """
+    Apply stereographic projection of the given pole single pole 'a' in (3)
+    or 'a' in (nvec,3) with 'nvec' being the number of separate poles
+
+    Argument
+    --------
+    a : pole(s) (unit vector)
+
+    Returns
+    -------
+    Multiple coordinates of 'nvec' number of projected poles (nvec,2)
+        or coordinate of a single projected pole in (2,) shape
+    """
+    if len(a.shape)>1:
+        vs=a.copy()
+    elif len(a.shape)==1:
+        vs=np.zeros((1,3))
+        vs[0,:]=a[::]
+    nvec=vs.shape[0]
+    coords=np.zeros((nvec,2))
+    for i, v in enumerate(vs):
+        coords[i,:]=projection(v)
+    if len(a.shape)>1: return coords
+    elif len(a.shape)==1: return coords[0]
+
+
+def get_ipf_boundary(
+    a=[0,0,1],b=[1,0,1],c=[1,1,1],nres=5,
+    fnsx=None):
+    """
+    Given a, b, and c poles, calculate the fundamental triangle
+    in the sphere in which the inverse pole figure contours are
+    bounded. The algorithm is as follows:
+    1. Pair up a,b, and c 'Miller-indexed' crystal plane normals such that
+       (a,b), (b,c), (c,a)
+    2. For each pair, calculates the
+
+
+    Arguments
+    ---------
+    a, b, c are three Miller-indexed crystal plane normals.
+    nres: the number of points belonging to each arc
+          of (a,b), (b,c), and (c,a) pairs makes.
+    fnsx: Name of single crystal file used in VPSC or dEVPSC code
+        from which the crystallographic information is obtained.
+
+    Returns
+    -------
+    coords: The coordinates of boundary used in the inverse pole figure.
+    """
+    from . import sym
+    pairs=[[a,b],[b,c],[c,a]]
+    coords=np.zeros((2,(nres-1)*3+1))
+
+    for i, pair in enumerate(pairs[:3]):
+        aca,bca,thf,vref,rots=sym.calc_vref_and_rot(*pair,fnsx,nres)
+        varc=calc_arc(aca,rots)
+        xy=proj(varc)
+        i0=i*(nres-1)
+        i1=i0+nres-1
+        coords[:,i0:i1]=xy[0:-1,:].T
+    coords[:,-1]=coords[:,0]
+    return coords
+
+
+def gen_mask(boundary,x,y,shape):
+    """
+    Given the triangle boundary of inverse pole figure,
+    determine coordinates that are NOT within the boundary.
+    Then, return 'mask' in the shape of pole figure grid.
+    The latter is to remove the domains outside the fundamental
+    stereographic triangle.
+
+    Arguments
+    ---------
+    boundary
+    x
+    y
+    shape : shape of pole figure grid, which is used to contruct the 'mask' array
+
+    Returns
+    -------
+    mask: masking array to removed the grid outside the boundary.
+    """
+    from shapely import geometry
+    from shapely.geometry import Point, Polygon
+
+    xb,yb=boundary
+    poly=Polygon(zip(xb,yb))
+    mask=np.empty(shape,dtype='object')
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            p1,p2=x[i,j],y[i,j]
+            if abs(p2)<1e-3: p2=1e-5 # a little trick to include the point on the horizontal line
+            point=Point(p1,p2)
+            mask[i,j]=not(point.within(poly))
+    return mask
