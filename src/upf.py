@@ -1169,8 +1169,8 @@ def gen_fig(nrows=3,ncols=3,colsize=2.5,rowsize=2.,**kwargs):
 
 class polefigure:
     # decides if the given set is in the texture file form or array
-    def __init__(self, grains=None, filename=None, csym=None,
-                 ngrain=100, cdim=[1.,1.,1.], cang=[90.,90.,90.],
+    def __init__(self, grains=None, filename=None, fnsx=None, csym=None,
+                 ngrain=100, cdim=None, cang=None,
                  ssym=False, epf=None,epf_mode=None):
         """
         cdim=[1.,1.,1.6235] ## AZ31
@@ -1189,6 +1189,7 @@ class polefigure:
         ---------
         grains = None
         filename = None
+        fnsx = None - Single crystal file used in VPSC-family codes
         csym = 'cubic' or'hexag'  #crystal symmetry
         ngrain = 100
         cdim=[1.,1.,1.]
@@ -1197,6 +1198,7 @@ class polefigure:
         epf = None : experimental pole figure file
         epf_mode = 'epf' or 'xpc'
         """
+        from . import sym
         # The grain aggregte can be given either through a file or #
         # passing an array of them to the class directly.          #
         # either grains or filename                                #
@@ -1336,10 +1338,34 @@ class polefigure:
 
             ### environments global variables
             #1 symmetry
-            self.csym = csym
             self.ngr = len(self.gr)
-            self.cdim = cdim
-            self.cang = cang
+
+
+
+            if type(fnsx)!=type(None) and \
+               (type(csym)!=type(None) or  \
+                type(cdim)!=type(None) or \
+                type(cang)!=type(None)):
+                print('**Error: specify either fnsx or (csym,cdim,cang)')
+                print('        But, do not specify both')
+                raise IOError('** Error in fnsx/csym,cdim,cang')
+            elif type(fnsx)==type(None) and \
+               (type(csym)==type(None) or  \
+                type(cdim)==type(None) or \
+                type(cang)==type(None)):
+                print('**Error: At least either fnsx or (csym,cdim,cang) should be given')
+                raise IOError('** Error in fnsx/csym,cdim,cang')
+
+
+            if type(fnsx)==type(None):
+                self.fnsx = None
+                self.csym = csym
+                self.cdim = cdim
+                self.cang = cang
+            else:
+                self.fnsx = fnsx
+                self.csym, self.cdim, self.cang \
+                    = sym.read_fnsx(self.fnsx)
 
     def epfplot(self,ifig,cmap,nlev,mn,mx,ix,iy,rot,iline_khi80):
         """
@@ -1730,7 +1756,7 @@ class polefigure:
                mn=None,mx=None,lev_norm_log=True,nlev=7,ilev=1,levels=None,
                cmap='magma',rot=0.,iline_khi80=False,
                transform=np.array([[-1,0,0],[0,-1,0],[0,0,1]]),
-               ideco_lev=True,
+               ideco_lev=True,ismooth=1,
                **kwargs):
         """
         New version of pf that will succeed upf.polefigure.pf
@@ -1800,6 +1826,7 @@ class polefigure:
            transformation matrix applied to the entire polycrystal aggregate.
         <ideco_lev> True or False
            switch to turn on or off the levels
+        <ismooth>=1
 
         Returns
         -------
@@ -1808,7 +1835,8 @@ class polefigure:
         import MP.lib.mpl_lib
         import matplotlib.cm
         from matplotlib.colors import LogNorm
-        from .sym import cv
+        from .sym import cv, get_icsym
+        import scipy
 
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
@@ -1830,25 +1858,15 @@ class polefigure:
         miller=poles[::]
 
         if type(cdim)!=type(None): self.cdim=cdim
-        ## 4 digits miller indices are used for hexagon and trigo
-        # if (self.csym=='hexag' or self.csym=='trigo') and proj=='pf':
-        #     pole_=[]
-        #     for i in range(len(poles)):
-        #         p  = [0,0,0]
-        #         p_ = poles[i]
-        #         if len(p_)!=4: raise IOError('4 digits should be given')
-        #         p[0] = p_[0]
-        #         p[1] = p_[1]
-        #         p[2] = p_[3]
-        #         pole_.append(p)
-        #     poles = pole_[::]
 
         tiny = 1.e-9
-        N=[]
+
         if self.gr.shape[-1]>4: Ncol=[]
 
-        t0=time.time()
+
         if mode in ['line','contour','fill']:
+            t0=time.time()
+            N=[]
             for i in range(len(poles)):
                 rst=cells_pf(
                     proj=proj,pole=poles[i],dth=dth,dph=dph,
@@ -1881,12 +1899,37 @@ class polefigure:
             PHI    = PHI + rot ## default: rot=0.
             x      = R*np.cos(PHI); y = R*np.sin(PHI)
 
+
             nArray=np.array(N)
+            print()
+            print(f'Original x.shape: {x.shape}')
+            print(f'Original y.shape: {y.shape}')
+            print(f'Original nArray.shape: {nArray.shape}')
+
+            if ismooth>1:
+                t0=time.time()
+                N_smooth=[]
+                for i in range(len(poles)):
+                    refined=scipy.ndimage.zoom(nArray[i].T,ismooth)
+                    refined[refined<0]=0.
+                    x,y=xy_grid_from_shape(refined.T.shape)
+                    N_smooth.append(refined.T)
+
+                print()
+                uet(time.time()-t0,head='Elapsed time for smoothing')
+                print()
+                nArray=np.array(N_smooth)
+
+                print()
+                print(f'New x.shape: {x.shape}')
+                print(f'New y.shape: {y.shape}')
+                print(f'New nArray.shape: {nArray.shape}')
+
             xyCoords=np.array([x,y])
             mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
 
         elif mode in ['dot','dotm']:
-
+            t0=time.time()
             pf_dots=[]
             for ip in range(len(poles)):
                 P=[]
@@ -1937,6 +1980,9 @@ class polefigure:
 
         for i in range(len(poles)):
             if mode in ['line','contour','fill']:
+
+                t0=time.time()
+
                 if type(levels)==type(None):
                     if lev_norm_log:
                         ## To prevent log (0) -> np.nan
@@ -1951,10 +1997,11 @@ class polefigure:
                 else:
                     norm = None
 
-                try:
-                    cmap_mpl = matplotlib.cm.get_cmap(cmap)
-                except:
-                    cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
+                print()
+                uet(time.time()-t0,head='Elapsed time for step 1')
+
+                try: cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                except: cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
 
                 color_mapping = matplotlib.cm.ScalarMappable(
                     norm=norm,cmap=cmap_mpl)
@@ -1968,7 +2015,45 @@ class polefigure:
                 cnts=func(x,y,nArray[i],levels=levels,
                           cmap=cmap,norm=norm,zorder=10)
 
-                if proj=='ipf': return x,y,nArray[i]
+                uet(time.time()-t0,head='Elapsed time for step 2')
+                #if proj=='ipf': return x,y,nArray[i]
+
+
+                if True and proj=='ipf':
+                    ## determine the three poles that define the fundamental zones.
+                    if self.csym=='cubic':
+                        a=[0,0,1]
+                        b=[1,0,1]
+                        c=[1,1,1]
+                    elif self.csym=='hexag':
+                        a=[0,0,0,2]
+                        b=[1,0,-1,0]
+                        c=[2,-1,-1,0]
+                    elif self.csym=='ortho':
+                        a=[0,0,1]
+                        b=[1,0,0]
+                        c=[0,1,0]
+                    else:
+                        raise IOError('need to validate other crystal symmetries.')
+
+                    icsym=get_icsym(self.csym)
+                    a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                    b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                    c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
+
+
+                    print('\n---')
+                    print(f'a: {a}')
+                    print(f'b: {b}')
+                    print(f'c: {c}')
+                    print('---\n')
+                    triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
+                    axs[i].plot(*triangle,'-k',zorder=1e10)
+                    mask=gen_mask(triangle,shape=x.shape,x=x,y=y)
+                    axs[i].set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
+                    axs[i].set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
+
+
 
                 ## x, y coordinates of maximum intensity in grid
                 i0,j0 = indices_mx[i]
@@ -1980,20 +2065,25 @@ class polefigure:
                                 color=color_mapping.to_rgba(levels[-1]))
 
                 if ires:# and mode!='fill':
-                    xs=[];ys=[]
+                    print(f'(-1) nArray.shape: {nArray.shape}')
                     filt = nArray[i,:,:]<levels[0]
                     filt[0,1:]=False
                     filt[1:,0]=False
                     xs=x[filt]; ys=y[filt]
+
+                    print(f'xs.shape: {xs.shape}')
+                    print(f'ys.shape: {ys.shape}')
+
+                    print(f'np.log(xs.shape[0]): {np.log(xs.shape[0])}')
+
                     if len(xs)>0:
                         axs[i].plot(
                             xs,ys,'k.',
-                            alpha=0.17*len(poles),
+                            alpha=0.17*len(poles)/np.log(xs.shape[0]),
                             markersize=2.0)
-                # if ires and mode=='fill': ## overlay the resolution
-                #     axs[i].plot(x,y,'k+',
-                #                 alpha=0.17*len(poles),
-                #                 markersize=2.0,zorder=100)
+
+                print()
+                uet(time.time()-t0,head='Elapsed time for step 3')
 
                 if ideco_lev:
                     ideco_opt=0
@@ -2015,6 +2105,9 @@ class polefigure:
                 #s=rf'${s}$'
                 axs[i].text(0.6,-0.95,s,fontsize=12)
 
+                print()
+                uet(time.time()-t0,head='Elapsed time for step 4')
+
             if mode in ['dot']:
                 if ideco_lev:
                     ideco_opt=0
@@ -2029,48 +2122,28 @@ class polefigure:
                 except:
                     pass
 
-            ## circle
-            _x_,_y_ = __circle__()
-            axs[i].plot(_x_,_y_,'k-')
+
+
             axs[i].set_axis_off()
-            axs[i].set_xlim(-1.1,1.4)
-            axs[i].set_ylim(-1.1,1.4)
             axs[i].set_aspect('equal')
 
-            ## axis label/    ## Ticks
-            axs[i].text(1.15,0. ,ix,va='center',ha='center')
-            axs[i].text(0. ,1.15,iy,va='center',ha='center')
-            axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
-            axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
+            ## circle
+            if proj=='pf':
+                _x_,_y_ = __circle__()
+                axs[i].plot(_x_,_y_,'k-')
+                axs[i].set_xlim(-1.1,1.4)
+                axs[i].set_ylim(-1.1,1.4)
 
-            ## if ipf proj
-            if proj=='ipf':
-                ## determine the three poles that define the fundamental zones.
-                if self.csym=='cubic':
-                    a=[0,0,1]
-                    b=[1,0,1]
-                    c=[1,1,1]
-                elif self.csym=='hexag':
-                    a=[0,0,0,2]
-                    b=[1,0,-1,0]
-                    c=[2,-1,-1,0]
-                elif self.csym=='ortho':
-                    a=[0,0,1]
-                    b=[1,0,0]
-                    c=[0,1,0]
-                else:
-                    raise IOError('need to validate other crystal symmetries.')
 
-                icsym=get_icsym(self.csym)
-                a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                ## axis label/    ## Ticks
+                axs[i].text(1.15,0. ,ix,va='center',ha='center')
+                axs[i].text(0. ,1.15,iy,va='center',ha='center')
+                axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
+                axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
 
-                print('\n---')
-                print(f'a: {a}')
-                print(f'b: {b}')
-                print(f'c: {c}')
-                print('---\n')
+
+
+
 
         if self.gr.shape[-1]>4:
             return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
