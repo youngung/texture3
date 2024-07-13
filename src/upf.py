@@ -1835,7 +1835,6 @@ class polefigure:
         from .sym import cv, get_icsym
         import scipy
 
-
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
@@ -1854,13 +1853,9 @@ class polefigure:
 
         nlev = nlev + 1 ##
         miller=poles[::]
-
         if type(cdim)!=type(None): self.cdim=cdim
-
         tiny = 1.e-9
-
         if self.gr.shape[-1]>4: Ncol=[] ## esgr format
-
         if mode in ['line','contour','fill']:
             t0=time.time()
             N=[]
@@ -2009,13 +2004,6 @@ class polefigure:
                         raise IOError('need to validate other crystal symmetries.')
 
                     icsym=get_icsym(self.csym)
-                    # if False:
-                    #     a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                    #     b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                    #     c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
-
-                    #     triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
-                    # else:
 
                     ## stereographic triangle boundary
                     triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
@@ -2083,12 +2071,12 @@ class polefigure:
                     s='%s%s'%(s,h)
                 s='%s)'%s
                 s=r'$\mathbf{%s}$'%s
-                if proj=='pf': axs[i].text(0.6,-0.95,s,fontsize=12)
+                if proj=='pf': axs[i].text(0,-1.3,s,fontsize=9,ha='center',va='center')
                 if proj=='ipf':
                     scale=triangle[1].max()-triangle[1].min()
                     axs[i].text(
                         (min(triangle[0])+max(triangle[0]))/2.,
-                        min(triangle[1])-scale/5.,s,fontsize=12,ha='center')
+                        min(triangle[1])-scale/3.,s,fontsize=9,ha='center',va='center')
 
             if mode in ['dot']:
                 if ideco_lev:
@@ -2380,7 +2368,7 @@ def cells_pf(
     Arguments
     ---------
     <proj> can be either 'pf' or 'ipf'
-    <pole_ca> = [1,0,0]
+    <pole> = [1,0,0]
     <dph>  = 7.5. (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
     <dth>  = 7.5. (rotation angle: -180,+180)
     <csym> = None
@@ -2389,9 +2377,11 @@ def cells_pf(
     <n_rim>=2
     <transform>: the default is np.identity(3)
 
-
-    **
-    For the case of <proj>='pf', you can create
+    ---------
+    Returns
+    -------
+    nodes             if ncols==4  (just like the texture file of (E)VPSC)
+    nodes, nodes_col  if ncols>4
     """
     from . import sym
 
