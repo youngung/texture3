@@ -441,6 +441,11 @@ def cv(miller, icsym=None, cdim=None, cang=None):
     ---------
     pole : miller indexed pole
     icsym: 1 (cubic), 2 (hexag), 3 (trigo), 4 (tetra), 5 (ortho), 6 (monoc), 7 (tricl)
+
+    Returns
+    -------
+    Cartesian vector corresponding to the given plane normal (miller).
+    It is assumed that the plane normal is given in terms of Miller-indexed form.
     """
     if type(icsym)==type(None):
         raise IOError('icsym should be given to <sym.cv>')

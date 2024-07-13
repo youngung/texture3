@@ -937,7 +937,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     mode   pole figure plotting mode (line or fill)
     """
     ## fontsize of appended text to pole figures will be 4*fact
-    fact = 2.5
+    fact = 2.0
     # --
     if mode in ['fill','line']:
         clev    = cnt._levels
@@ -1835,6 +1835,7 @@ class polefigure:
         from .sym import cv, get_icsym
         import scipy
 
+
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
@@ -1894,6 +1895,8 @@ class polefigure:
             R, PHI = np.meshgrid(r,phi)
             PHI    = PHI + rot ## default: rot=0.
             x      = R*np.cos(PHI); y = R*np.sin(PHI)
+            x_ori=x[::]
+            y_ori=y[::]
 
             nArray=np.array(N)
             if ismooth>1:
@@ -2006,16 +2009,19 @@ class polefigure:
                         raise IOError('need to validate other crystal symmetries.')
 
                     icsym=get_icsym(self.csym)
-                    a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                    b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
-                    c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                    # if False:
+                    #     a=cv(miller=a,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                    #     b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
+                    #     c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
 
+                    #     triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
+                    # else:
+
+                    ## stereographic triangle boundary
                     triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
-                    # print(f'\ntriangle: {triangle}')
-                    # print(f'\ntriangle max: {triangle[0].max()}')
-                    # print(f'\ntriangle min: {triangle[0].min()}')
-                    # sys.exit(0)
                     axs[i].plot(*triangle,'-k',zorder=1e10)
+
+                    ## Generate masks to hide contours outside of the triangle
                     mask=gen_mask(triangle,shape=x.shape,x=x,y=y)
                     axs[i].set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
                     axs[i].set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
@@ -2029,8 +2035,6 @@ class polefigure:
                 nArray[i][np.isnan(nArray[i])]=0. ## remove nan
                 nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
                 if proj=='ipf':
-                    # print(f'\n*** mask: {mask}')
-                    # print('** masking now ... ')
                     rst_within_triangle=np.ma.array(nArray[i],mask=mask)
                     cnts=func(x,y,rst_within_triangle,levels=levels,
                               cmap=cmap,norm=norm,zorder=10)
@@ -2043,16 +2047,22 @@ class polefigure:
                     axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
                                 color=color_mapping.to_rgba(levels[-1]))
 
-                if ires and proj=='pf':
-                    filt = nArray[i,:,:]<levels[0]
+                if ires:# and proj=='pf':
+                    filt= nArray[i,:,:]<levels[0]
+                    if proj=='ipf':
+                        filt=np.logical_and(filt,np.logical_not(mask))
                     filt[0,1:]=False
                     filt[1:,0]=False
+
+                    filt=np.array(filt,dtype='bool')
                     xs=x[filt]; ys=y[filt]
 
                     if len(xs)>0:
+                        alpha=0.1
+                        if ismooth>2: alpha=0.02
                         axs[i].plot(
                             xs,ys,'k.',
-                            alpha=0.10*len(poles)/np.log(xs.shape[0]+1),
+                            alpha=alpha,
                             markersize=2.0)
 
                 if ideco_lev:ideco_opt=0
@@ -2110,9 +2120,7 @@ class polefigure:
                 axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
                 axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
 
-
-
-        if self.gr.shape[-1]>4:
+        if self.gr.shape[-1]>4 and proj=='pf':
             return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
         elif self.gr.shape[-1]==4:
             try:
@@ -2432,7 +2440,6 @@ def cells_pf(
         else:
             raise IOError('Not valid symmetry for pf')
         nsymop=H.shape[0]
-        print(f'\nnsymop in cells_pf: {nsymop}')
         # empty np arrays
         poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
         poles_wgt        = np.zeros((len(grains),nsymop*2))
