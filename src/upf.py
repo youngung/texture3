@@ -1861,8 +1861,7 @@ class polefigure:
 
         tiny = 1.e-9
 
-        if self.gr.shape[-1]>4: Ncol=[]
-
+        if self.gr.shape[-1]>4: Ncol=[] ## esgr format
 
         if mode in ['line','contour','fill']:
             t0=time.time()
@@ -1899,13 +1898,7 @@ class polefigure:
             PHI    = PHI + rot ## default: rot=0.
             x      = R*np.cos(PHI); y = R*np.sin(PHI)
 
-
             nArray=np.array(N)
-            print()
-            print(f'Original x.shape: {x.shape}')
-            print(f'Original y.shape: {y.shape}')
-            print(f'Original nArray.shape: {nArray.shape}')
-
             if ismooth>1:
                 t0=time.time()
                 N_smooth=[]
@@ -1915,15 +1908,7 @@ class polefigure:
                     x,y=xy_grid_from_shape(refined.T.shape)
                     N_smooth.append(refined.T)
 
-                print()
-                uet(time.time()-t0,head='Elapsed time for smoothing')
-                print()
                 nArray=np.array(N_smooth)
-
-                print()
-                print(f'New x.shape: {x.shape}')
-                print(f'New y.shape: {y.shape}')
-                print(f'New nArray.shape: {nArray.shape}')
 
             xyCoords=np.array([x,y])
             mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
@@ -1963,9 +1948,9 @@ class polefigure:
             et = time.time()-t0
             if mode=='dotm': return pf_dots
 
-            try:
-                uet(et,head='Elapsed time for calculting dots')
-            except: pass
+            # try:
+            #     uet(et,head='Elapsed time for calculting dots')
+            # except: pass
         else:
             raise IOError('Unexpected mode given to pf_new')
 
@@ -1997,9 +1982,6 @@ class polefigure:
                 else:
                     norm = None
 
-                print()
-                uet(time.time()-t0,head='Elapsed time for step 1')
-
                 try: cmap_mpl = matplotlib.cm.get_cmap(cmap)
                 except: cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
 
@@ -2009,14 +1991,7 @@ class polefigure:
                 if   mode=='line': func = axs[i].contour
                 elif mode in ['fill', 'contour']: func = axs[i].contourf
 
-                ## contour plot
-                nArray[i][np.isnan(nArray[i])]=0. ## remove nan
-                nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
-                cnts=func(x,y,nArray[i],levels=levels,
-                          cmap=cmap,norm=norm,zorder=10)
 
-                uet(time.time()-t0,head='Elapsed time for step 2')
-                #if proj=='ipf': return x,y,nArray[i]
 
 
                 if True and proj=='ipf':
@@ -2041,40 +2016,44 @@ class polefigure:
                     b=cv(miller=b,icsym=icsym,cdim=self.cdim,cang=self.cang)
                     c=cv(miller=c,icsym=icsym,cdim=self.cdim,cang=self.cang)
 
-
-                    print('\n---')
-                    print(f'a: {a}')
-                    print(f'b: {b}')
-                    print(f'c: {c}')
-                    print('---\n')
+                    # print('\n---')
+                    # print(f'a: {a}')
+                    # print(f'b: {b}')
+                    # print(f'c: {c}')
+                    # print('---\n')
                     triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
                     axs[i].plot(*triangle,'-k',zorder=1e10)
                     mask=gen_mask(triangle,shape=x.shape,x=x,y=y)
                     axs[i].set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
                     axs[i].set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
 
-
-
                 ## x, y coordinates of maximum intensity in grid
                 i0,j0 = indices_mx[i]
                 mx_coord_x = x[i0,j0]
                 mx_coord_y = y[i0,j0]
+
+                ## contour plot
+                nArray[i][np.isnan(nArray[i])]=0. ## remove nan
+                nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
+                if proj=='ipf':
+                    print(f'mask: {mask}')
+                    print('masking now ... ')
+                    nArray[i]=np.ma.array(nArray[i],mask=mask)
+
+
+                cnts=func(x,y,nArray[i],levels=levels,
+                          cmap=cmap,norm=norm,zorder=10)
+
 
                 if mode=='line':
                     axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
                                 color=color_mapping.to_rgba(levels[-1]))
 
                 if ires:# and mode!='fill':
-                    print(f'(-1) nArray.shape: {nArray.shape}')
                     filt = nArray[i,:,:]<levels[0]
                     filt[0,1:]=False
                     filt[1:,0]=False
                     xs=x[filt]; ys=y[filt]
-
-                    print(f'xs.shape: {xs.shape}')
-                    print(f'ys.shape: {ys.shape}')
-
-                    print(f'np.log(xs.shape[0]): {np.log(xs.shape[0])}')
 
                     if len(xs)>0:
                         axs[i].plot(
@@ -2082,13 +2061,8 @@ class polefigure:
                             alpha=0.10*len(poles)/np.log(xs.shape[0]+1),
                             markersize=2.0)
 
-                print()
-                uet(time.time()-t0,head='Elapsed time for step 3')
-
-                if ideco_lev:
-                    ideco_opt=0
-                else:
-                    ideco_opt=1
+                if ideco_lev:ideco_opt=0
+                else:ideco_opt=1
 
                 if ilev==1 or (ilev==0 and i==len(axs)-1):
                     deco_pf(axs[i],cnts,miller[i],ideco_opt,
@@ -2102,11 +2076,7 @@ class polefigure:
                     s='%s%s'%(s,h)
                 s='%s)'%s
                 s=r'$\mathbf{%s}$'%s
-                #s=rf'${s}$'
                 axs[i].text(0.6,-0.95,s,fontsize=12)
-
-                print()
-                uet(time.time()-t0,head='Elapsed time for step 4')
 
             if mode in ['dot']:
                 if ideco_lev:
@@ -2121,8 +2091,6 @@ class polefigure:
                             iskip_last=False,ix=ix,iy=iy,mode=mode)
                 except:
                     pass
-
-
 
             axs[i].set_axis_off()
             axs[i].set_aspect('equal')
@@ -2140,8 +2108,6 @@ class polefigure:
                 axs[i].text(0. ,1.15,iy,va='center',ha='center')
                 axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
                 axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
-
-
 
 
 
