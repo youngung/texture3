@@ -1848,7 +1848,9 @@ class polefigure:
            pole figure plot. - I usually obtain incomplete pole figure
            upto a tilting <chi> of 80.
         <mode>
-           Contour model: 'line' or 'fill' or 'dot', 'dotm'
+           Contour modes: 'line', 'contour', or 'fill'
+           dot modes    : 'dot' or 'dotm'
+             ** The option 'dotm' provides the coordinates and quits)
         <ilev>
            level option: 0 common contour levels for all poles generated
                          1 individual levels applied for individual poles
@@ -1889,9 +1891,15 @@ class polefigure:
         nlev = nlev + 1 ##
         miller=poles[::]
         if type(cdim)!=type(None): self.cdim=cdim
-        tiny = 1.e-9
+
         if self.gr.shape[-1]>4: Ncol=[] ## esgr format
+
+        #----------------------------------------------------
+        # contour (line, contour, fill) or dots (dot, dotm)
         if mode in ['line','contour','fill']:
+
+            #------------------------------------------------
+            # Obtain pole figure intensity nodes
             t0=time.time()
             N=[]
             for i in range(len(poles)):
@@ -1905,42 +1913,38 @@ class polefigure:
                     Ncol.append(rst[1])
                 else:
                     N.append(rst)
-
+            nArray=np.array(N)
             et = time.time()-t0
             try:
                 uet(et,head='Elapsed time for calling cells_pf')
             except:pass
 
-            x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
-            y_node = np.arange(   0., 90.+tiny,dph) ## tilting (half-sphere)
-            XN, YN = np.meshgrid(x_node,y_node)
 
-            #--------------------------------------------------#
-            ## plotting / resolution
-            nm     = int((360.0 - 0.)/dth) ## in-plane rotation
-            nn     = int((180. - 90.)/dph) ## tilting
-            theta  = np.linspace(pi, pi/2., nn+1)
-            phi    = np.linspace(0., 2.*pi, nm+1)
-            r      = np.sin(theta)/(1-np.cos(theta))
-            R, PHI = np.meshgrid(r,phi)
-            PHI    = PHI + rot ## default: rot=0.
-            x      = R*np.cos(PHI); y = R*np.sin(PHI)
-            x_ori=x[::]
-            y_ori=y[::]
+            #------------------------------------------------
+            ## Get meshgrids
+            R,Phi,x,y=get_grid_from_angles(dth,dph,rot)
+            x_ori=x[::]; y_ori=y[::]
 
-            nArray=np.array(N)
+            #------------------------------------------------
+            ## Smoothing by using scipy.ndimage.zoom
             if ismooth>1:
                 t0=time.time()
                 N_smooth=[]
                 for i in range(len(poles)):
-                    refined=scipy.ndimage.zoom(nArray[i].T,ismooth)
+                    refined=scipy.ndimage.zoom(
+                        nArray[i].T,ismooth)
+                    # Remove unwanted negative intensities
                     refined[refined<0]=0.
-                    x,y=xy_grid_from_shape(refined.T.shape)
                     N_smooth.append(refined.T)
-
+                    # Newly refined (x,y) coordinates
+                    # (required only once)
+                    if i==0: x,y=xy_grid_from_shape(refined.T.shape)
                 nArray=np.array(N_smooth)
 
-            xyCoords=np.array([x,y])
+            #------------------------------------------------
+            # Obtain the maximum and minimum intensities
+            # Also, find the location of 'maximum' pole by
+            # its index.
             mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
 
         elif mode in ['dot','dotm']:
@@ -1981,9 +1985,12 @@ class polefigure:
         else:
             raise IOError('Unexpected mode given to pf_new')
 
+
         if type(axs)==type(None):
-            if type(ifig)==type(None): fig = plt.figure(figsize=(3.3*len(poles),3.0))
-            else: fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
+            if type(ifig)==type(None):
+                fig = plt.figure(figsize=(3.3*len(poles),3.0))
+            else:
+                fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
             ##
             axs=np.empty(len(poles),dtype='object')
             for i in range(len(poles)):
@@ -2818,6 +2825,44 @@ def axes2transf(x,y):
     print('zv:',zv)
     return mat
 
+def get_grid_from_angles(dth,dph,rot):
+    """
+    Calculate meshgrid used for pole figure contouring
+    based on two angular increments (dth, dph). Additional
+    in-plane rotation can be applied by using argument <rot>
+    given in radian.
+
+    Arguments
+    ---------
+    dth : in-plane rotation
+    dph : tilting (half-sphere)
+    rot : additional in-plane rotation (radian)
+
+    Returns
+    -------
+    R   : meshgrid distance from the center (R) coordinates
+    PHI : meshgrid rotation
+    x   : meshgrid cartesian x (horizontal)
+    y   : meshgrid cartesian y (vertical)
+    """
+    tiny = 1.e-9
+
+    x_node = np.arange(-180.,180.+tiny,dth) ## in-plane rotation
+    y_node = np.arange(   0., 90.+tiny,dph) ## tilting (half-sphere)
+    XN, YN = np.meshgrid(x_node,y_node)
+
+    #--------------------------------------------------#
+    ## plotting / resolution
+    nm     = int((360.0 - 0.)/dth) ## in-plane rotation
+    nn     = int((180. - 90.)/dph) ## tilting
+    theta  = np.linspace(pi, pi/2., nn+1)
+    phi    = np.linspace(0., 2.*pi, nm+1)
+    r      = np.sin(theta)/(1-np.cos(theta))
+    R, PHI = np.meshgrid(r,phi)
+    PHI    = PHI + rot ## default: rot=0.
+    x      = R*np.cos(PHI); y = R*np.sin(PHI)
+
+    return R, PHI, x, y
 
 
 def xy_grid_from_shape(shape):
