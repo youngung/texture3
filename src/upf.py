@@ -915,7 +915,7 @@ def __circle__(center=[0,0], r=1.):
 
 def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             iopt=0,iskip_last=False,
-            ix='1',iy='2',mode='line'):
+            ix='1',iy='2',mode='line',**kwargs_ipf):
     """
     Decorate matplotlib.pyplot.axes used for plotting
     (inverse) pole figures
@@ -935,6 +935,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ix     (xlabel, i.e., horizontal axis label)
     iy     (ylabel, i.e., vertial axis label)
     mode   pole figure plotting mode (line or fill)
+    **kwargs_ipf
     """
     ## fontsize of appended text to pole figures will be 4*fact
     fact = 2.0
@@ -975,6 +976,43 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             ax.text(x=x[0]+0.02,
                     y=y[0],
                     s=s,fontsize=3.5*fact,va='center')
+
+    if proj=='ipf':
+        from .sym import calc_cvec
+        a=kwargs_ipf['a']
+        b=kwargs_ipf['b']
+        c=kwargs_ipf['c']
+        fnsx=kwargs_ipf['fnsx']
+
+        y1=triangle[1].max()
+        y0=triangle[1].min()
+        x1=triangle[1].max()
+        x0=triangle[1].min()
+        yscale=y1-y0
+        xscale=x1-x0
+
+        loc=(0,0)
+        for j, miller in enumerate([a,b,c]):
+            #x,y=projection(-calc_cvec(miller=miller,fnsx=fnsx))
+            t=''
+            for i, v in enumerate(miller):
+
+                if v<0: tx=r'\bar{%i}'%-v
+                else: tx='%i'%v
+
+                t=f'{t}%s'%tx
+            t=rf'$({t})$'
+            if j==0:
+                x=triangle[0].min()+yscale/6.
+                y=triangle[1].min()-yscale/6.
+            if j==1:
+                x=triangle[0].max()+yscale/6.
+                y=triangle[1].min()-yscale/6.
+            if j==2:
+                x,y=projection(-calc_cvec(miller=miller,fnsx=fnsx))
+                y=triangle[1].max()+yscale/6.+0.05
+            loc=(x,y)
+            ax.text(*loc,t,va='center',ha='center')
 
 
 def projection(pole=None):
@@ -1327,17 +1365,10 @@ class polefigure:
             Sample symmetry application is pending,
             because it is done over rve (refer to cmb.py)
             """
-            # nrot = int(round(360./ph1max))
-            # if ssym==True:
-            #     if nrot==4: self.gr = planar_sym(gr=self.gr, nrot=2)
-            #     else: raise IOError, "not ready for other nrot than 4"
-            #     pass
 
             ### environments global variables
             #1 symmetry
             self.ngr = len(self.gr)
-
-
 
             if type(fnsx)!=type(None) and \
                (type(csym)!=type(None) or  \
@@ -1345,6 +1376,10 @@ class polefigure:
                 type(cang)!=type(None)):
                 print('**Error: specify either fnsx or (csym,cdim,cang)')
                 print('        But, do not specify both')
+                print(f'fnsx: {fnsx}')
+                print(f'csym: {csym}')
+                print(f'cdim: {cdim}')
+                print(f'cang: {cang}')
                 raise IOError('** Error in fnsx/csym,cdim,cang')
             elif type(fnsx)==type(None) and \
                (type(csym)==type(None) or  \
@@ -2057,11 +2092,21 @@ class polefigure:
                 else:ideco_opt=1
 
                 if (ilev==1 or (ilev==0 and i==len(axs)-1)):
-                    deco_pf(ax=axs[i],proj=proj,triangle=triangle,
-                            cnt=cnts,miller=miller[i],
-                            iopt=ideco_opt,
-                            iskip_last=False,
-                            ix=ix,iy=iy,mode=mode)
+                    if proj=='pf':
+                        deco_pf(ax=axs[i],proj=proj,triangle=triangle,
+                                cnt=cnts,miller=miller[i],
+                                iopt=ideco_opt,
+                                iskip_last=False,
+                                ix=ix,iy=iy,mode=mode,
+                                )
+                    elif proj=='ipf':
+                        deco_pf(ax=axs[i],proj=proj,triangle=triangle,
+                                cnt=cnts,miller=miller[i],
+                                iopt=ideco_opt,
+                                iskip_last=False,
+                                ix=ix,iy=iy,mode=mode,
+                                a=a,b=b,c=c,fnsx=self.fnsx)
+
 
                 ## pole
                 s='('
