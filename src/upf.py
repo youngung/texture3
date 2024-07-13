@@ -2079,7 +2079,7 @@ class polefigure:
                     if len(xs)>0:
                         axs[i].plot(
                             xs,ys,'k.',
-                            alpha=0.17*len(poles)/np.log(xs.shape[0]),
+                            alpha=0.10*len(poles)/np.log(xs.shape[0]+1),
                             markersize=2.0)
 
                 print()
