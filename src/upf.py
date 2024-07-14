@@ -1008,11 +1008,12 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         b=kwargs_ipf['b']
         c=kwargs_ipf['c']
         fnsx=kwargs_ipf['fnsx']
-        mask_invpf_tri=kwargs_ipf['mask_invpf_tri']
+        if ires and mode=='line':
+            mask_invpf_tri=kwargs_ipf['mask_invpf_tri']
         loc=(0,0)
-        for j, miller in enumerate([a,b,c]):
+        for j, mil in enumerate([a,b,c]):
             t=''
-            for i, v in enumerate(miller):
+            for i, v in enumerate(mil):
                 if v<0: tx=r'\bar{%i}'%-v
                 else: tx='%i'%v
                 t=f'{t}%s'%tx
@@ -1024,7 +1025,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                 x=triangle[0].max()+xscale/6.
                 y=triangle[1].min()-yscale/6.
             if j==2:
-                x,y=projection(-calc_cvec(miller=miller,fnsx=fnsx))
+                x,y=projection(-calc_cvec(miller=mil,fnsx=fnsx))
                 y=triangle[1].max()+yscale/6.+0.05
             loc=(x,y)
             ax.text(*loc,t,va='center',ha='center')
@@ -1034,7 +1035,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
 
     #--------------------------------------------
     ## Add small block dots on the background
-    ## in case contouring is doen with lines
+    ## in case contouring is done with lines
     ## but not filled.
     if ires and mode=='line':
         filt=nArray[:,:]<levels[0]
@@ -1059,9 +1060,29 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ax.set_axis_off()
     ax.set_aspect('equal')
 
+    ##---------------------------------------------
+    ## Annotate Miller indexed pole, either crystal
+    ## or sample.
+    s='('
+    for k in range(len(miller)):
+        if miller[k]<0: h = r'\bar{%s}'%str(-1*miller[k])
+        else: h = '%s'%str(miller[k])
+        s='%s%s'%(s,h)
+    s='%s)'%s
+    s=r'$\mathbf{%s}$'%s
+    if proj=='pf':
+        ax.text(0,-1.3,s,fontsize=9,ha='center',
+                va='center')
+    if proj=='ipf':
+        scale=triangle[1].max()-triangle[1].min()
+        ax.text(
+            (min(triangle[0])+max(triangle[0]))/2.,
+            min(triangle[1])-scale/3.,s,fontsize=9,
+            ha='center',va='center')
+
     #----------------------------------------------#
-    ## circle & vertical and horizontal labels (ix, iy)
-    ## and ticks.
+    ## Triangle, circle & vertical and horizontal
+    ## labels (ix, iy), and ticks.
     if proj=='pf':
         _x_,_y_ = __circle__()
         ax.plot(_x_,_y_,'k-')
@@ -1074,7 +1095,8 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         ax.plot([0.0,0.0], [0.97,1.00],'k-')
         ax.plot([0.97,1.00],[0.0,0.0],'k-')
 
-
+    if proj=='ipf':
+        ax.plot(*triangle,'-k',zorder=1e10)
 
 
 def projection(pole=None):
@@ -1911,7 +1933,7 @@ class polefigure:
            upto a tilting <chi> of 80.
         <mode>
            Contour modes: 'line', 'contour', or 'fill'
-           dot modes    : 'dot' or 'dotm'
+           dot modes    : 'dot' or 'dotm', or 'dotc'
              ** The option 'dotm' provides the coordinates and quits)
         <ilev>
            level option: 0 common contour levels for all poles generated
@@ -1969,10 +1991,20 @@ class polefigure:
                 axs[i] = fig.add_subplot(1,len(poles),i+1)
             plt.subplots_adjust(left=0,right=0.8)
 
+        #--------------------------------------------
+        ## for inverse pole figure, obtain the fund.
+        ## triangle, and the three corner poles
+        ## i.e., a,b, and c, as well as the masking
+        ## array to remove contours outside the
+        ## triangle region.
+        triangle=None
+        if proj=='ipf':
+            ## stereographic triangle boundary
+            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+
         #----------------------------------------------------
         # contour (line, contour, fill) or dots (dot, dotm)
         if mode in ['line','contour','fill']:
-
             #------------------------------------------------
             # Calculate pole figure intensity nodes for
             # contouring.
@@ -1980,7 +2012,7 @@ class polefigure:
             N=[]
             for i in range(len(poles)):
                 rst=cells_pf(
-                    proj=proj,pole=poles[i],dth=dth,dph=dph,
+                    0,proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
                     cdim=self.cdim,grains=self.gr,
                     n_rim = n_rim,transform=transform)
@@ -2026,59 +2058,41 @@ class polefigure:
 
         #----------------------------------------------------
         # dotted pole figures
-        elif mode in ['dot','dotm']:
-            t0=time.time()
+        elif mode in ['dot','dotm','dotc']:
             pf_dots=[]
-            for ip in range(len(poles)):
-                P=[]
-                ## multiple crystal poles after reflecting
-                ## crystal symmetries
-                p0 = __equiv__(miller=poles[ip],csym=self.csym,
-                               cdim=self.cdim,cang=self.cang)
-                P=np.zeros((len(p0)*2,3))
-                P[:len(p0),:]= p0[:,:]
-                P[len(p0):,:]=-p0[:,:]
-                poles_ca=P/np.sqrt(P**2).sum()
-                poles_sa=np.zeros((len(self.gr),len(poles_ca),3))
-                for i in range(len(self.gr)):
-                    phi1,phi,phi2,wgt = self.gr[i][:4]
-                    amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-                    amat=amat.T ## sa<-ca
-                    if (transform==np.identity(3)).all(): pass
-                    else: amat=np.dot(transform,amat)
-                    for j in range(len(poles_ca)):
-                        poles_sa[i,j,:]=np.dot(amat,poles_ca[j])
-                poles_sa  = poles_sa.reshape( (len(self.gr)*len(poles_ca),3))
-                XY=[]
-                for i in range(len(poles_sa)):
-                    x,y=projection(pole=poles_sa[i])
-                    if x**2+y**2<=1+1e-3:
-                        y=-y
-                        x=-x
-                        XY.append([x,y])
-                pf_dots.append(np.array(XY))
+            for i in range(len(poles)): # crystal or sample poles
+                print(f'poles[i]:: {poles[i]}')
+                XY,wgt,col_val=cells_pf(
+                    1,proj=proj,pole=poles[i],dth=dth,dph=dph,
+                    csym=self.csym,cang=self.cang,
+                    cdim=self.cdim,grains=self.gr,
+                    n_rim = n_rim,transform=transform)
 
+                ## masking XY ...
+                if proj=='ipf':
+                    XY=get_within_triangle(triangle,XY)
+                pf_dots.append(XY)
             pf_dots=np.array(pf_dots,dtype='object')
-            et = time.time()-t0
-            if mode=='dotm': return pf_dots
 
+            if mode=='dotm':
+                return pf_dots
         else:
             raise IOError('Unexpected mode given to pf_new')
 
-
         #--------------------------------------------
-        ## for inverse pole figure, obtain the fund.
-        ## triangle, and the three corner poles
-        ## i.e., a,b, and c, as well as the masking
-        ## array to remove contours outside the
+        ## Create masking array to remove contours outside the
         ## triangle region.
         triangle=None
+        mask_invpf_tri=None
         if proj=='ipf':
             ## stereographic triangle boundary
             triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+            # if mode in ['line','contour','fill']:
             ## Generate masks to hide contours outside of the triangle
-            mask_invpf_tri=gen_mask(triangle,shape=x.shape,x=x,y=y)
-
+            if mode in ['line','contour','fill']:
+                mask_invpf_tri=gen_mask_contour(
+                    triangle,
+                    shape=x.shape,x=x,y=y)
 
         #----------------------------------------------------
         # decoarting (inverse) pole figures
@@ -2092,7 +2106,7 @@ class polefigure:
                 func = axs[i].contour
             elif mode in ['fill', 'contour']:
                 func = axs[i].contourf
-            elif mode in ['dot']:
+            elif mode in ['dot','dotc']:
                 func = axs[i].scatter
 
             #------------------------------------------------
@@ -2104,9 +2118,6 @@ class polefigure:
                     get_pf_color_map_and_norm(
                         levels,cmap,lev_norm_log, mns[i],
                         mxs[i], nlev)
-
-                if proj=='ipf':
-                    axs[i].plot(*triangle,'-k',zorder=1e10)
 
                 ## contour plot
                 nArray[i][np.isnan(nArray[i])]=0. ## remove nan
@@ -2133,6 +2144,7 @@ class polefigure:
                 ## decorating (inverse) pole figures
                 if ideco_lev:ideco_opt=0
                 else:ideco_opt=1
+
                 if (ilev==1 or (ilev==0 and i==len(axs)-1)):
                     ## arguments commonly used for PF and IPF
                     kws=dict(ax=axs[i],proj=proj,
@@ -2147,33 +2159,16 @@ class polefigure:
                                    mask_invpf_tri=mask_invpf_tri)
                     deco_pf(**kws)
 
-
-                ## pole
-                s='('
-                for k in range(len(miller[i])):
-                    if miller[i][k]<0: h = r'\bar{%s}'%str(-1*miller[i][k])
-                    else: h = '%s'%str(miller[i][k])
-                    s='%s%s'%(s,h)
-                s='%s)'%s
-                s=r'$\mathbf{%s}$'%s
-                if proj=='pf':
-                    axs[i].text(0,-1.3,s,fontsize=9,ha='center',
-                                va='center')
-                if proj=='ipf':
-                    scale=triangle[1].max()-triangle[1].min()
-                    axs[i].text(
-                        (min(triangle[0])+max(triangle[0]))/2.,
-                        min(triangle[1])-scale/3.,s,fontsize=9,
-                        ha='center',va='center')
-
-            elif mode in ['dot']:
+            elif mode in ['dot','dotc']:
                 if ideco_lev:
                     ideco_opt=0
                 else:
                     ideco_opt=1
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
-                axs[i].scatter(x,y,**kwargs)
+
+                func(x,y,**kwargs)
+
                 kws=dict(ax=axs[i],proj=proj,
                          triangle=triangle,cnt=None,
                          miller=miller[i],iopt=ideco_opt,
@@ -2195,6 +2190,10 @@ class polefigure:
             try: return fig
             except: pass
         #--------------------------------------------------#
+
+
+
+
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
         """
@@ -2414,21 +2413,14 @@ class polefigure:
             #-------------------------------
         return np.array(XY),fig
 
-def cells_pf(
-        proj='pf',
-        pole=[1,0,0],
-        dph=7.5,
-        dth=7.5,
-        csym=None,
-        cang=[90.,90.,90.],
-        cdim=[1.,1.,1.],
-        grains=None,
-        n_rim=2,
-        transform=np.identity(3)):
+def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,90.,90.],
+             cdim=[1.,1.,1.],grains=None,n_rim=2,transform=np.identity(3)):
     """
-    Creates cells gridded in the dimension of (nphi, ntheta)
-    Given the delta x and delt y (dm, dn), each pole's
-    weight is assigned to the cell to which it belongs.
+    For the case of contours, creates cells gridded in
+    the dimension of (nphi, ntheta). Given the delta x
+    and delt y (dm, dn), each pole's weight is assigned
+    to the cell to which it belongs.
+
     Plots the cell's weight and returns the cell in array.
 
     + Additional feature (2024-05-28)
@@ -2444,6 +2436,7 @@ def cells_pf(
     ---------
     Arguments
     ---------
+    <iopt> (0: contouring; 1: dots)
     <proj> can be either 'pf' or 'ipf'
     <pole> = [1,0,0]
     <dph>  = 7.5. (tilting angle : semi-sphere 0, +90 or full-sphere 0, +180)
@@ -2527,9 +2520,24 @@ def cells_pf(
         #poles_wgt[:,nsymop:2*nsymop]=poles_wgt[:,0:nsymop]
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
-        poles_wgt=poles_wgt.reshape( (len(grains)*nsymop*2))
-        poles_col=poles_col.reshape( (len(grains)*nsymop*2,grains.shape[-1]-4))
+        poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
+        poles_col=poles_col.reshape((len(grains)*nsymop*2,grains.shape[-1]-4))
 
+
+    if iopt==1:
+        XY=[]
+        WGT=[]
+        COL_val=[]
+        for ip, pole in enumerate(poles_projected):
+            ## Convert each 3D pole to (x,y) coordinates
+            x,y=projection(pole)
+            if x**2+y**2<=1+tiny: ## If within the circle
+                y=-y; x=-x
+                XY.append([x,y])
+                WGT.append(poles_wgt[ip])
+                COL_val.append(poles_col[ip,:])
+
+        return np.array(XY), np.array(WGT), np.array(COL_val)
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
@@ -3021,7 +3029,7 @@ def get_ipf_boundary(nres=5,fnsx=None):
     return coords, a, b, c
 
 
-def gen_mask(boundary,x,y,shape):
+def gen_mask_contour(boundary,x,y,shape):
     """
     Given the triangle boundary of inverse pole figure,
     determine coordinates that are NOT within the boundary.
@@ -3053,6 +3061,27 @@ def gen_mask(boundary,x,y,shape):
             point=Point(p1,p2)
             mask[i,j]=not(point.within(poly))
     return mask
+
+def get_within_triangle(boundary,XY):
+    """
+    Similar to <gen_mask_contour>, select XY points only within
+    the given boundary.
+    """
+    from shapely import geometry
+    from shapely.geometry import Point, Polygon
+
+    xb,yb=boundary
+    poly=Polygon(zip(xb,yb))
+    XY_new=[]
+    for i, xy in enumerate(XY):
+        x,y=xy
+        point=Point(x,y)
+        if point.within(poly):
+            XY_new.append(xy)
+
+    return XY_new
+
+
 
 def get_pf_color_map_and_norm(levels,cmap,lev_norm_log, mns, mxs, nlev):
     """
