@@ -1869,10 +1869,6 @@ class polefigure:
         -------
         fig: matplotlib.figure.Figure
         """
-        import MP.lib.mpl_lib
-        import matplotlib.cm
-        from matplotlib.colors import LogNorm
-        from .sym import cv, get_icsym
         import scipy
 
         ## check mutually exclusive arguments (ifig and axs)
@@ -1920,7 +1916,8 @@ class polefigure:
         if mode in ['line','contour','fill']:
 
             #------------------------------------------------
-            # Obtain pole figure intensity nodes
+            # Calculate pole figure intensity nodes for
+            # contouring.
             t0=time.time()
             N=[]
             for i in range(len(poles)):
@@ -1929,15 +1926,15 @@ class polefigure:
                     csym=self.csym,cang=self.cang,
                     cdim=self.cdim,grains=self.gr,
                     n_rim = n_rim,transform=transform)
-                if self.gr.shape[-1]>4:
+                if self.gr.shape[-1]>4: ## if extra columns exist
                     N.append(rst[0])
                     Ncol.append(rst[1])
                 else:
                     N.append(rst)
             nArray=np.array(N)
+
             et = time.time()-t0
-            try:
-                uet(et,head='Elapsed time for calling cells_pf')
+            try: uet(et,head='Elapsed time for calling cells_pf')
             except:pass
 
             #------------------------------------------------
@@ -1966,8 +1963,8 @@ class polefigure:
             # Obtain the maximum and minimum intensities
             # Also, find the location of 'maximum' pole by
             # its index.
-            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,
-                                                mode,ilev)
+            mns, mxs, indices_mx = self.calcMXN(
+                nArray,mx,mn,mode,ilev)
 
         #----------------------------------------------------
         # dotted pole figures
@@ -2010,78 +2007,74 @@ class polefigure:
         else:
             raise IOError('Unexpected mode given to pf_new')
 
-
         #----------------------------------------------------
         # decoarting (inverse) pole figures
         # levels, boundaries (circle or triangle)
         # coloring of contours, miller indices for each poles
         for i in range(len(poles)):
+
+            #------------------------------------------------
+            # Decorating the contoured (inverse) pole figures
             if mode in ['line','contour','fill']:
-                t0=time.time()
-                if type(levels)==type(None):
-                    if lev_norm_log:
-                        ## To prevent log (0) -> np.nan
-                        ## hardwire minimum value
-                        if mns[i]==0: mns[i] = 0.5
-                        levels = np.logspace(
-                            np.log10(mns[i]),np.log10(mxs[i]),nlev)
-                        norm = LogNorm()
-                    else:
-                        levels = np.linspace(mns[i],mxs[i],nlev)
-                        norm = None
-                else:
-                    norm = None
 
-                try:
-                    cmap_mpl = matplotlib.cm.get_cmap(cmap)
-                except:
-                    print("**Warning: Couldn't use matplotlib.cm.get_cmap")
-                    print(' I am now using matplotlib.pyplot.get_cmap')
-                    cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
+                ## create necessary objects for color-contours
+                levels, cm_norm, cmap_mpl, color_mapping =\
+                    get_pf_color_map_and_norm(
+                        levels,cmap,lev_norm_log, mns[i],
+                        mxs[i], nlev)
 
-                color_mapping = matplotlib.cm.ScalarMappable(
-                    norm=norm,cmap=cmap_mpl)
+                #--------------------------------------------
+                ## determine the plotting function
+                if   mode=='line':
+                    func = axs[i].contour
+                elif mode in ['fill', 'contour']:
+                    func = axs[i].contourf
 
-                if   mode=='line': func = axs[i].contour
-                elif mode in ['fill', 'contour']: func = axs[i].contourf
-
+                #--------------------------------------------
+                ## for inverse pole figure, obtain the fund.
+                ## triangle, and the three corner poles
+                ## i.e., a,b, and c, as well as the masking
+                ## array to remove contours outside the
+                ## triangle region.
                 triangle=None
-                if True and proj=='ipf':
-
+                if proj=='ipf':
                     ## stereographic triangle boundary
-                    triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)#,a=a,b=b,c=c
+                    triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
                     axs[i].plot(*triangle,'-k',zorder=1e10)
 
                     ## Generate masks to hide contours outside of the triangle
-                    mask=gen_mask(triangle,shape=x.shape,x=x,y=y)
+                    mask_invpf_tri=gen_mask(triangle,shape=x.shape,x=x,y=y)
                     axs[i].set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
                     axs[i].set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
 
-                ## x, y coordinates of maximum intensity in grid
-                i0,j0 = indices_mx[i]
-                mx_coord_x = x[i0,j0]
-                mx_coord_y = y[i0,j0]
 
                 ## contour plot
                 nArray[i][np.isnan(nArray[i])]=0. ## remove nan
                 nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
                 if proj=='ipf':
-                    rst_within_triangle=np.ma.array(nArray[i],mask=mask)
+                    rst_within_triangle=np.ma.array(nArray[i],mask=mask_invpf_tri)
                     cnts=func(x,y,rst_within_triangle,levels=levels,
-                              cmap=cmap,norm=norm,zorder=10)
+                              cmap=cmap,norm=cm_norm,zorder=10)
 
                 else:
                     cnts=func(x,y,nArray[i],levels=levels,
-                              cmap=cmap,norm=norm,zorder=10)
+                              cmap=cmap,norm=cm_norm,zorder=10)
 
+                # Indicate maximum location only for 'line' contours
+                # but not the 'filled' contours.
                 if mode=='line':
+                    ## x, y coordinates of maximum intensity in grid
+                    i0,j0 = indices_mx[i]
+                    mx_coord_x = x[i0,j0]
+                    mx_coord_y = y[i0,j0]
                     axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
                                 color=color_mapping.to_rgba(levels[-1]))
 
-                if ires:# and proj=='pf':
-                    filt= nArray[i,:,:]<levels[0]
+                ##
+                if ires and mode=='line':
+                    filt=nArray[i,:,:]<levels[0]
                     if proj=='ipf':
-                        filt=np.logical_and(filt,np.logical_not(mask))
+                        filt=np.logical_and(filt,np.logical_not(mask_invpf_tri))
                     filt[0,1:]=False
                     filt[1:,0]=False
 
@@ -2091,10 +2084,8 @@ class polefigure:
                     if len(xs)>0:
                         alpha=0.1
                         if ismooth>2: alpha=0.02
-                        axs[i].plot(
-                            xs,ys,'k.',
-                            alpha=alpha,
-                            markersize=2.0)
+                        axs[i].plot(xs,ys,'k.',alpha=alpha,
+                                    markersize=2.0)
 
                 #--------------------------------------------
                 ## decorating (inverse) pole figures
@@ -2146,7 +2137,9 @@ class polefigure:
             axs[i].set_axis_off()
             axs[i].set_aspect('equal')
 
-            ## circle
+            #----------------------------------------------#
+            ## circle & vertical and horizontal labels (ix, iy)
+            ## and ticks.
             if proj=='pf':
                 _x_,_y_ = __circle__()
                 axs[i].plot(_x_,_y_,'k-')
@@ -2159,16 +2152,16 @@ class polefigure:
                 axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
                 axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
 
-        if self.gr.shape[-1]>4 and proj=='pf':
-            return fig, np.array(N), np.array(Ncol), R*np.cos(PHI),  R*np.sin(PHI)
-        elif self.gr.shape[-1]==4:
-            try:
-                return fig
-            except:
-                pass
+
         #--------------------------------------------------#
-
-
+        ## returning some objects.
+        if self.gr.shape[-1]>4 and proj=='pf':
+            return fig, np.array(N), np.array(Ncol), \
+                R*np.cos(PHI),  R*np.sin(PHI)
+        elif self.gr.shape[-1]==4:
+            try: return fig
+            except: pass
+        #--------------------------------------------------#
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
         """
@@ -3027,3 +3020,48 @@ def gen_mask(boundary,x,y,shape):
             point=Point(p1,p2)
             mask[i,j]=not(point.within(poly))
     return mask
+
+def get_pf_color_map_and_norm(levels,cmap,lev_norm_log, mns, mxs, nlev):
+    """
+    Based on the given set of arguments,
+    obtain necessary objects for color-contouring.
+
+
+    Arguments
+    ---------
+    levels,cmap,lev_norm_log, mns, mxs, nlev
+
+    Returns
+    -------
+    levels, cm_norm, cmap_mpl, color_mapping
+    """
+    import numpy as np
+    from matplotlib.colors import LogNorm
+    import matplotlib.cm
+    import matplotlib.pyplot
+
+    if type(levels)==type(None):
+        if lev_norm_log:
+            ## To prevent log (0) -> np.nan
+            ## hardwire minimum value
+            if mns==0: mns = 0.5
+            levels = np.logspace(
+                np.log10(mns),np.log10(mxs),nlev)
+            cm_norm = LogNorm()
+        else:
+            levels = np.linspace(mns,mxs,nlev)
+            cm_norm = None
+    else:
+        cm_norm = None
+
+    try:
+        cmap_mpl = matplotlib.cm.get_cmap(cmap)
+    except:
+        # print("**Warning: Couldn't use matplotlib.cm.get_cmap")
+        # print(' I am now using matplotlib.pyplot.get_cmap')
+        cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
+
+    color_mapping = matplotlib.cm.ScalarMappable(
+        norm=cm_norm,cmap=cmap_mpl)
+
+    return  levels, cm_norm, cmap_mpl, color_mapping
