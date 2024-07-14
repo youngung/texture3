@@ -915,7 +915,8 @@ def __circle__(center=[0,0], r=1.):
 
 def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             iopt=0,iskip_last=False,
-            ix='1',iy='2',mode='line',**kwargs_ipf):
+            ix='1',iy='2',mode='line',ires=True,
+            nArray=None,levels=None,xcoord=None,ycoord=None,**kwargs_ipf):
     """
     Decorate matplotlib.pyplot.axes used for plotting
     (inverse) pole figures
@@ -935,8 +936,19 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ix     (xlabel, i.e., horizontal axis label)
     iy     (ylabel, i.e., vertial axis label)
     mode   pole figure plotting mode (line or fill)
+    ires (logial) if ires true and mode is 'line'
+         draw black dots on the background.
+    nArray
+    levels
+    xcoord
+    ycoord
     **kwargs_ipf
     """
+    from .sym import calc_cvec
+
+    ## ------------------------------------------
+    ## in case if inverse pole figures, obtain
+    ## the size of triangle.
     if proj=='ipf':
         y1=triangle[1].max()
         y0=triangle[1].min()
@@ -944,9 +956,11 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         x0=triangle[1].min()
         yscale=y1-y0
         xscale=x1-x0
-    ## fontsize of appended text to pole figures will be 4*fact
 
-    fact = 2.0
+
+    #--------------------------------------------
+    ## fontsize of appended text to pole figures will be 4*fact
+    fact = 1.8
     # --
     if mode in ['fill','line']:
         clev    = cnt._levels
@@ -954,6 +968,8 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         if iskip_last: nlev = len(tcolors)-1
         else:  nlev = len(tcolors)
 
+    #--------------------------------------------
+    ## place colorbar of contours with its intensities
     if iopt==1: pass
     elif iopt==0 and mode in ['fill','line']:
         if proj=='pf':
@@ -984,25 +1000,21 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             ax.text(x=x[0]+0.02,
                     y=y[0],
                     s=s,fontsize=3.5*fact,va='center')
-
+    #--------------------------------------------
+    ## place the Miller indices of three corners
+    ## of the triangle.
     if proj=='ipf':
-        from .sym import calc_cvec
         a=kwargs_ipf['a']
         b=kwargs_ipf['b']
         c=kwargs_ipf['c']
         fnsx=kwargs_ipf['fnsx']
-
-
-
+        mask_invpf_tri=kwargs_ipf['mask_invpf_tri']
         loc=(0,0)
         for j, miller in enumerate([a,b,c]):
-            #x,y=projection(-calc_cvec(miller=miller,fnsx=fnsx))
             t=''
             for i, v in enumerate(miller):
-
                 if v<0: tx=r'\bar{%i}'%-v
                 else: tx='%i'%v
-
                 t=f'{t}%s'%tx
             t=rf'$({t})$'
             if j==0:
@@ -1016,6 +1028,53 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                 y=triangle[1].max()+yscale/6.+0.05
             loc=(x,y)
             ax.text(*loc,t,va='center',ha='center')
+
+        ax.set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
+        ax.set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
+
+    #--------------------------------------------
+    ## Add small block dots on the background
+    ## in case contouring is doen with lines
+    ## but not filled.
+    if ires and mode=='line':
+        filt=nArray[:,:]<levels[0]
+        if proj=='ipf':
+            filt=np.logical_and(filt,np.logical_not(
+                mask_invpf_tri))
+        filt[0,1:]=False
+        filt[1:,0]=False
+
+        filt=np.array(filt,dtype='bool')
+        xs=xcoord[filt]; ys=ycoord[filt]
+
+        if len(xs)>0:
+            alpha=0.02
+            #if ismooth>2: alpha=0.02
+            ax.plot(xs,ys,'k.',alpha=alpha,
+                    markersize=2.0)
+
+
+    ##---------------------------------------------
+    ## below lines are applied regardless of 'mode'.
+    ax.set_axis_off()
+    ax.set_aspect('equal')
+
+    #----------------------------------------------#
+    ## circle & vertical and horizontal labels (ix, iy)
+    ## and ticks.
+    if proj=='pf':
+        _x_,_y_ = __circle__()
+        ax.plot(_x_,_y_,'k-')
+        ax.set_xlim(-1.1,1.4)
+        ax.set_ylim(-1.1,1.4)
+
+        ## axis label/    ## Ticks
+        ax.text(1.15,0. ,ix,va='center',ha='center')
+        ax.text(0. ,1.15,iy,va='center',ha='center')
+        ax.plot([0.0,0.0], [0.97,1.00],'k-')
+        ax.plot([0.97,1.00],[0.0,0.0],'k-')
+
+
 
 
 def projection(pole=None):
@@ -1886,7 +1945,6 @@ class polefigure:
                 ifig=ifig,cmap=cmap,nlev=nlev, mn=mn, mx=mx,
                 ix=ix,iy=iy,rot=rot,iline_khi80=iline_khi80)
 
-
         nlev = nlev + 1 ##
         miller=poles[::]
         if type(cdim)!=type(None): self.cdim=cdim
@@ -2007,11 +2065,35 @@ class polefigure:
         else:
             raise IOError('Unexpected mode given to pf_new')
 
+
+        #--------------------------------------------
+        ## for inverse pole figure, obtain the fund.
+        ## triangle, and the three corner poles
+        ## i.e., a,b, and c, as well as the masking
+        ## array to remove contours outside the
+        ## triangle region.
+        triangle=None
+        if proj=='ipf':
+            ## stereographic triangle boundary
+            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+            ## Generate masks to hide contours outside of the triangle
+            mask_invpf_tri=gen_mask(triangle,shape=x.shape,x=x,y=y)
+
+
         #----------------------------------------------------
         # decoarting (inverse) pole figures
         # levels, boundaries (circle or triangle)
         # coloring of contours, miller indices for each poles
         for i in range(len(poles)):
+
+            #------------------------------------------------
+            ## determine the plotting function
+            if   mode=='line':
+                func = axs[i].contour
+            elif mode in ['fill', 'contour']:
+                func = axs[i].contourf
+            elif mode in ['dot']:
+                func = axs[i].scatter
 
             #------------------------------------------------
             # Decorating the contoured (inverse) pole figures
@@ -2023,30 +2105,8 @@ class polefigure:
                         levels,cmap,lev_norm_log, mns[i],
                         mxs[i], nlev)
 
-                #--------------------------------------------
-                ## determine the plotting function
-                if   mode=='line':
-                    func = axs[i].contour
-                elif mode in ['fill', 'contour']:
-                    func = axs[i].contourf
-
-                #--------------------------------------------
-                ## for inverse pole figure, obtain the fund.
-                ## triangle, and the three corner poles
-                ## i.e., a,b, and c, as well as the masking
-                ## array to remove contours outside the
-                ## triangle region.
-                triangle=None
                 if proj=='ipf':
-                    ## stereographic triangle boundary
-                    triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
                     axs[i].plot(*triangle,'-k',zorder=1e10)
-
-                    ## Generate masks to hide contours outside of the triangle
-                    mask_invpf_tri=gen_mask(triangle,shape=x.shape,x=x,y=y)
-                    axs[i].set_xlim(min(triangle[0])-0.05,max(triangle[0])+0.05)
-                    axs[i].set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
-
 
                 ## contour plot
                 nArray[i][np.isnan(nArray[i])]=0. ## remove nan
@@ -2055,7 +2115,6 @@ class polefigure:
                     rst_within_triangle=np.ma.array(nArray[i],mask=mask_invpf_tri)
                     cnts=func(x,y,rst_within_triangle,levels=levels,
                               cmap=cmap,norm=cm_norm,zorder=10)
-
                 else:
                     cnts=func(x,y,nArray[i],levels=levels,
                               cmap=cmap,norm=cm_norm,zorder=10)
@@ -2070,23 +2129,6 @@ class polefigure:
                     axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
                                 color=color_mapping.to_rgba(levels[-1]))
 
-                ##
-                if ires and mode=='line':
-                    filt=nArray[i,:,:]<levels[0]
-                    if proj=='ipf':
-                        filt=np.logical_and(filt,np.logical_not(mask_invpf_tri))
-                    filt[0,1:]=False
-                    filt[1:,0]=False
-
-                    filt=np.array(filt,dtype='bool')
-                    xs=x[filt]; ys=y[filt]
-
-                    if len(xs)>0:
-                        alpha=0.1
-                        if ismooth>2: alpha=0.02
-                        axs[i].plot(xs,ys,'k.',alpha=alpha,
-                                    markersize=2.0)
-
                 #--------------------------------------------
                 ## decorating (inverse) pole figures
                 if ideco_lev:ideco_opt=0
@@ -2097,10 +2139,14 @@ class polefigure:
                              triangle=triangle,cnt=cnts,
                              miller=miller[i],iopt=ideco_opt,
                              iskip_last=False,ix=ix,iy=iy,
-                             mode=mode)
+                             mode=mode,ires=ires,nArray=nArray[i,:,:],
+                             levels=levels,xcoord=x,ycoord=y)
+
                     if proj=='ipf':
-                        kws.update(a=a,b=b,c=c,fnsx=self.fnsx)
+                        kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
+                                   mask_invpf_tri=mask_invpf_tri)
                     deco_pf(**kws)
+
 
                 ## pole
                 s='('
@@ -2120,7 +2166,7 @@ class polefigure:
                         min(triangle[1])-scale/3.,s,fontsize=9,
                         ha='center',va='center')
 
-            if mode in ['dot']:
+            elif mode in ['dot']:
                 if ideco_lev:
                     ideco_opt=0
                 else:
@@ -2128,30 +2174,17 @@ class polefigure:
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
                 axs[i].scatter(x,y,**kwargs)
-                try:
-                    deco_pf(axs[i],None,miller[i],ideco_opt,
-                            iskip_last=False,ix=ix,iy=iy,mode=mode)
-                except:
-                    pass
+                kws=dict(ax=axs[i],proj=proj,
+                         triangle=triangle,cnt=None,
+                         miller=miller[i],iopt=ideco_opt,
+                         iskip_last=False,ix=ix,iy=iy,
+                         mode=mode,ires=ires,nArray=None,
+                         levels=None,xcoord=x,ycoord=y)
 
-            axs[i].set_axis_off()
-            axs[i].set_aspect('equal')
-
-            #----------------------------------------------#
-            ## circle & vertical and horizontal labels (ix, iy)
-            ## and ticks.
-            if proj=='pf':
-                _x_,_y_ = __circle__()
-                axs[i].plot(_x_,_y_,'k-')
-                axs[i].set_xlim(-1.1,1.4)
-                axs[i].set_ylim(-1.1,1.4)
-
-                ## axis label/    ## Ticks
-                axs[i].text(1.15,0. ,ix,va='center',ha='center')
-                axs[i].text(0. ,1.15,iy,va='center',ha='center')
-                axs[i].plot([0.0,0.0], [0.97,1.00],'k-')
-                axs[i].plot([0.97,1.00],[0.0,0.0],'k-')
-
+                if proj=='ipf':
+                    kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
+                               mask_invpf_tri=mask_invpf_tri)
+                deco_pf(**kws)
 
         #--------------------------------------------------#
         ## returning some objects.
