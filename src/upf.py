@@ -744,21 +744,21 @@ def calc_vref_and_rot(a,b,csym,cdim,cang,nang=100):
         rots[i,:,:]=vector_ang(vref,np.rad2deg(th))
     return aca, bca, thf, vref, rots
 
-def get_ipf_boundary(a,b,c,nres,csym,cdim,cang):
-    pairs=[[a,b],[b,c],[c,a]]
-    coords=np.zeros((2,(nres-1)*3+1))
+# def get_ipf_boundary(a,b,c,nres,csym,cdim,cang):
+#     pairs=[[a,b],[b,c],[c,a]]
+#     coords=np.zeros((2,(nres-1)*3+1))
 
-    for i, pair in enumerate(pairs[:3]):
-        aca,bca,thf,vref,rots=calc_vref_and_rot(*pair,csym,cdim,cang,nres)
-        varc=calc_arc(aca,rots)
-        xy=np.zeros((len(varc),2))
-        for j, point in enumerate(varc):
-            xy[j,:]=projection(point)
-        i0=i*(nres-1)
-        i1=i0+nres-1
-        coords[:,i0:i1]=xy[0:-1,:].T
-    coords[:,-1]=coords[:,0]
-    return coords
+#     for i, pair in enumerate(pairs[:3]):
+#         aca,bca,thf,vref,rots=calc_vref_and_rot(*pair,csym,cdim,cang,nres)
+#         varc=calc_arc(aca,rots)
+#         xy=np.zeros((len(varc),2))
+#         for j, point in enumerate(varc):
+#             xy[j,:]=projection(point)
+#         i0=i*(nres-1)
+#         i1=i0+nres-1
+#         coords[:,i0:i1]=xy[0:-1,:].T
+#     coords[:,-1]=coords[:,0]
+#     return coords
 
 def calc_arc(aca,rots):
     """
@@ -937,7 +937,15 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     mode   pole figure plotting mode (line or fill)
     **kwargs_ipf
     """
+    if proj=='ipf':
+        y1=triangle[1].max()
+        y0=triangle[1].min()
+        x1=triangle[1].max()
+        x0=triangle[1].min()
+        yscale=y1-y0
+        xscale=x1-x0
     ## fontsize of appended text to pole figures will be 4*fact
+
     fact = 2.0
     # --
     if mode in ['fill','line']:
@@ -984,12 +992,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         c=kwargs_ipf['c']
         fnsx=kwargs_ipf['fnsx']
 
-        y1=triangle[1].max()
-        y0=triangle[1].min()
-        x1=triangle[1].max()
-        x0=triangle[1].min()
-        yscale=y1-y0
-        xscale=x1-x0
+
 
         loc=(0,0)
         for j, miller in enumerate([a,b,c]):
@@ -1006,7 +1009,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                 x=triangle[0].min()+yscale/6.
                 y=triangle[1].min()-yscale/6.
             if j==1:
-                x=triangle[0].max()+yscale/6.
+                x=triangle[0].max()+xscale/6.
                 y=triangle[1].min()-yscale/6.
             if j==2:
                 x,y=projection(-calc_cvec(miller=miller,fnsx=fnsx))
@@ -1876,7 +1879,7 @@ class polefigure:
         if type(ifig)!=type(None) and type(axs)!=type(None):
             raise IOError('** Err: ifig and axs are mutually exclusive')
 
-        ##################################################
+        ####################################################
         ## PF plots for experimental pole figure is
         ## separately conducted by epfplot function
         if type(self.epf).__name__!='NoneType':
@@ -1886,13 +1889,31 @@ class polefigure:
             return self.epfplot(
                 ifig=ifig,cmap=cmap,nlev=nlev, mn=mn, mx=mx,
                 ix=ix,iy=iy,rot=rot,iline_khi80=iline_khi80)
-        ##################################################
+
 
         nlev = nlev + 1 ##
         miller=poles[::]
         if type(cdim)!=type(None): self.cdim=cdim
 
         if self.gr.shape[-1]>4: Ncol=[] ## esgr format
+
+        ####################################################
+        ## contoured or dotted (inverse) pole figures.
+
+        #----------------------------------------------------
+        ## Either create new matplotlib figure object or use
+        #  the given <ifig> or even specifical  matplotlib
+        #  axes objects.
+        if type(axs)==type(None):
+            if type(ifig)==type(None):
+                fig = plt.figure(figsize=(3.3*len(poles),3.0))
+            else:
+                fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
+            ##
+            axs=np.empty(len(poles),dtype='object')
+            for i in range(len(poles)):
+                axs[i] = fig.add_subplot(1,len(poles),i+1)
+            plt.subplots_adjust(left=0,right=0.8)
 
         #----------------------------------------------------
         # contour (line, contour, fill) or dots (dot, dotm)
@@ -1919,7 +1940,6 @@ class polefigure:
                 uet(et,head='Elapsed time for calling cells_pf')
             except:pass
 
-
             #------------------------------------------------
             ## Get meshgrids
             R,Phi,x,y=get_grid_from_angles(dth,dph,rot)
@@ -1938,21 +1958,26 @@ class polefigure:
                     N_smooth.append(refined.T)
                     # Newly refined (x,y) coordinates
                     # (required only once)
-                    if i==0: x,y=xy_grid_from_shape(refined.T.shape)
+                    if i==0:
+                        x,y=xy_grid_from_shape(refined.T.shape)
                 nArray=np.array(N_smooth)
 
             #------------------------------------------------
             # Obtain the maximum and minimum intensities
             # Also, find the location of 'maximum' pole by
             # its index.
-            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,mode,ilev)
+            mns, mxs, indices_mx = self.calcMXN(nArray,mx,mn,
+                                                mode,ilev)
 
+        #----------------------------------------------------
+        # dotted pole figures
         elif mode in ['dot','dotm']:
             t0=time.time()
             pf_dots=[]
             for ip in range(len(poles)):
                 P=[]
-                ## multiple crystal poles after reflecting crystal symmetries
+                ## multiple crystal poles after reflecting
+                ## crystal symmetries
                 p0 = __equiv__(miller=poles[ip],csym=self.csym,
                                cdim=self.cdim,cang=self.cang)
                 P=np.zeros((len(p0)*2,3))
@@ -1986,22 +2011,13 @@ class polefigure:
             raise IOError('Unexpected mode given to pf_new')
 
 
-        if type(axs)==type(None):
-            if type(ifig)==type(None):
-                fig = plt.figure(figsize=(3.3*len(poles),3.0))
-            else:
-                fig = plt.figure(ifig,figsize=(3.3*len(poles),3.0))
-            ##
-            axs=np.empty(len(poles),dtype='object')
-            for i in range(len(poles)):
-                axs[i] = fig.add_subplot(1,len(poles),i+1)
-            plt.subplots_adjust(left=0,right=0.8)
-
+        #----------------------------------------------------
+        # decoarting (inverse) pole figures
+        # levels, boundaries (circle or triangle)
+        # coloring of contours, miller indices for each poles
         for i in range(len(poles)):
             if mode in ['line','contour','fill']:
-
                 t0=time.time()
-
                 if type(levels)==type(None):
                     if lev_norm_log:
                         ## To prevent log (0) -> np.nan
@@ -2016,8 +2032,12 @@ class polefigure:
                 else:
                     norm = None
 
-                try: cmap_mpl = matplotlib.cm.get_cmap(cmap)
-                except: cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
+                try:
+                    cmap_mpl = matplotlib.cm.get_cmap(cmap)
+                except:
+                    print("**Warning: Couldn't use matplotlib.cm.get_cmap")
+                    print(' I am now using matplotlib.pyplot.get_cmap')
+                    cmap_mpl = matplotlib.pyplot.get_cmap(cmap)
 
                 color_mapping = matplotlib.cm.ScalarMappable(
                     norm=norm,cmap=cmap_mpl)
@@ -2025,30 +2045,11 @@ class polefigure:
                 if   mode=='line': func = axs[i].contour
                 elif mode in ['fill', 'contour']: func = axs[i].contourf
 
-
-
                 triangle=None
                 if True and proj=='ipf':
-                    ## determine the three poles that define the fundamental zones.
-                    if self.csym=='cubic':
-                        a=[0,0,1]
-                        b=[1,0,1]
-                        c=[1,1,1]
-                    elif self.csym=='hexag':
-                        a=[0,0,0,2]
-                        b=[1,0,-1,0]
-                        c=[2,-1,-1,0]
-                    elif self.csym=='ortho':
-                        a=[0,0,1]
-                        b=[1,0,0]
-                        c=[0,1,0]
-                    else:
-                        raise IOError('need to validate other crystal symmetries.')
-
-                    icsym=get_icsym(self.csym)
 
                     ## stereographic triangle boundary
-                    triangle=get_ipf_boundary(fnsx=self.fnsx,a=a,b=b,c=c,nres=10)
+                    triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)#,a=a,b=b,c=c
                     axs[i].plot(*triangle,'-k',zorder=1e10)
 
                     ## Generate masks to hide contours outside of the triangle
@@ -2095,25 +2096,20 @@ class polefigure:
                             alpha=alpha,
                             markersize=2.0)
 
+                #--------------------------------------------
+                ## decorating (inverse) pole figures
                 if ideco_lev:ideco_opt=0
                 else:ideco_opt=1
-
                 if (ilev==1 or (ilev==0 and i==len(axs)-1)):
-                    if proj=='pf':
-                        deco_pf(ax=axs[i],proj=proj,triangle=triangle,
-                                cnt=cnts,miller=miller[i],
-                                iopt=ideco_opt,
-                                iskip_last=False,
-                                ix=ix,iy=iy,mode=mode,
-                                )
-                    elif proj=='ipf':
-                        deco_pf(ax=axs[i],proj=proj,triangle=triangle,
-                                cnt=cnts,miller=miller[i],
-                                iopt=ideco_opt,
-                                iskip_last=False,
-                                ix=ix,iy=iy,mode=mode,
-                                a=a,b=b,c=c,fnsx=self.fnsx)
-
+                    ## arguments commonly used for PF and IPF
+                    kws=dict(ax=axs[i],proj=proj,
+                             triangle=triangle,cnt=cnts,
+                             miller=miller[i],iopt=ideco_opt,
+                             iskip_last=False,ix=ix,iy=iy,
+                             mode=mode)
+                    if proj=='ipf':
+                        kws.update(a=a,b=b,c=c,fnsx=self.fnsx)
+                    deco_pf(**kws)
 
                 ## pole
                 s='('
@@ -2123,12 +2119,15 @@ class polefigure:
                     s='%s%s'%(s,h)
                 s='%s)'%s
                 s=r'$\mathbf{%s}$'%s
-                if proj=='pf': axs[i].text(0,-1.3,s,fontsize=9,ha='center',va='center')
+                if proj=='pf':
+                    axs[i].text(0,-1.3,s,fontsize=9,ha='center',
+                                va='center')
                 if proj=='ipf':
                     scale=triangle[1].max()-triangle[1].min()
                     axs[i].text(
                         (min(triangle[0])+max(triangle[0]))/2.,
-                        min(triangle[1])-scale/3.,s,fontsize=9,ha='center',va='center')
+                        min(triangle[1])-scale/3.,s,fontsize=9,
+                        ha='center',va='center')
 
             if mode in ['dot']:
                 if ideco_lev:
@@ -2938,9 +2937,7 @@ def proj(a):
     elif len(a.shape)==1: return coords[0]
 
 
-def get_ipf_boundary(
-    a=[0,0,1],b=[1,0,1],c=[1,1,1],nres=5,
-    fnsx=None):
+def get_ipf_boundary(nres=5,fnsx=None):
     """
     Given a, b, and c poles, calculate the fundamental triangle
     in the sphere in which the inverse pole figure contours are
@@ -2952,7 +2949,6 @@ def get_ipf_boundary(
 
     Arguments
     ---------
-    a, b, c are three Miller-indexed crystal plane normals.
     nres: the number of points belonging to each arc
           of (a,b), (b,c), and (c,a) pairs makes.
     fnsx: Name of single crystal file used in VPSC or dEVPSC code
@@ -2961,8 +2957,30 @@ def get_ipf_boundary(
     Returns
     -------
     coords: The coordinates of boundary used in the inverse pole figure.
+    a, b, c : Miller-indexed poles which consist the fundamental triangle.
     """
     from . import sym
+
+    #icsym=sym.get_icsym(csym)
+    csym, cdim, cang = sym.read_fnsx(fnsx)
+
+    # ## determine the three poles that define the fundamental zones.
+    if csym=='cubic':
+        a=[0,0,1]
+        b=[1,0,1]
+        c=[1,1,1]
+    elif csym=='hexag':
+        a=[0,0,0,2]
+        b=[1,0,-1,0]
+        c=[2,-1,-1,0]
+    elif csym=='ortho':
+        a=[0,0,1]
+        b=[1,0,0]
+        c=[0,1,0]
+    else:
+        raise IOError('Error: need to validate other crystal symmetries.')
+
+
     pairs=[[a,b],[b,c],[c,a]]
     coords=np.zeros((2,(nres-1)*3+1))
 
@@ -2974,7 +2992,7 @@ def get_ipf_boundary(
         i1=i0+nres-1
         coords[:,i0:i1]=xy[0:-1,:].T
     coords[:,-1]=coords[:,0]
-    return coords
+    return coords, a, b, c
 
 
 def gen_mask(boundary,x,y,shape):
