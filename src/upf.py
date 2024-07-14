@@ -1019,7 +1019,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                 t=f'{t}%s'%tx
             t=rf'$({t})$'
             if j==0:
-                x=triangle[0].min()+yscale/6.
+                x=triangle[0].min()-yscale/6.
                 y=triangle[1].min()-yscale/6.
             if j==1:
                 x=triangle[0].max()+xscale/6.
@@ -2060,6 +2060,8 @@ class polefigure:
         # dotted pole figures
         elif mode in ['dot','dotm','dotc']:
             pf_dots=[]
+            pf_dots_wgt=[]
+            pf_dots_col=[]
             for i in range(len(poles)): # crystal or sample poles
                 print(f'poles[i]:: {poles[i]}')
                 XY,wgt,col_val=cells_pf(
@@ -2070,9 +2072,18 @@ class polefigure:
 
                 ## masking XY ...
                 if proj=='ipf':
-                    XY=get_within_triangle(triangle,XY)
+                    XY,tags=get_within_triangle(triangle,XY)
+                    # use this tags to trim.
+                    wgt=wgt[tags]
+                    col_val=col_val[tags,:]
+
                 pf_dots.append(XY)
+                pf_dots_wgt.append(wgt)
+                pf_dots_col.append(col_val)
+
             pf_dots=np.array(pf_dots,dtype='object')
+            pf_dots_wgt=np.array(pf_dots_wgt,dtype='object')
+            pf_dots_col=np.array(pf_dots_col,dtype='object')
 
             if mode=='dotm':
                 return pf_dots
@@ -2108,6 +2119,7 @@ class polefigure:
                 func = axs[i].contourf
             elif mode in ['dot','dotc']:
                 func = axs[i].scatter
+
 
             #------------------------------------------------
             # Decorating the contoured (inverse) pole figures
@@ -2166,6 +2178,22 @@ class polefigure:
                     ideco_opt=1
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
+
+                if mode=='dotc':
+                    ## color
+                    ## create necessary objects for color-contours
+                    levels, cm_norm, cmap_mpl, color_mapping =\
+                        get_pf_color_map_and_norm(
+                            levels,cmap,lev_norm_log,
+                            pf_dots_wgt[i].min(),
+                            pf_dots_wgt[i].max(),
+                            nlev)
+
+                    print('min and max wgt:', pf_dots_wgt[i].min(),
+                          pf_dots_wgt[i].max())
+
+                    kwargs.update(c=pf_dots_wgt[i])
+
 
                 func(x,y,**kwargs)
 
@@ -3066,6 +3094,16 @@ def get_within_triangle(boundary,XY):
     """
     Similar to <gen_mask_contour>, select XY points only within
     the given boundary.
+
+    Arguments
+    ---------
+    boundary
+    XY
+
+    Returns
+    -------
+    XY_new
+    tags
     """
     from shapely import geometry
     from shapely.geometry import Point, Polygon
@@ -3073,13 +3111,15 @@ def get_within_triangle(boundary,XY):
     xb,yb=boundary
     poly=Polygon(zip(xb,yb))
     XY_new=[]
+    tags=np.empty(len(XY),dtype='bool')
     for i, xy in enumerate(XY):
         x,y=xy
         point=Point(x,y)
-        if point.within(poly):
+        t=point.within(poly)
+        tags[i]=t
+        if t:
             XY_new.append(xy)
-
-    return XY_new
+    return XY_new, tags
 
 
 
