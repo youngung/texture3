@@ -916,7 +916,7 @@ def __circle__(center=[0,0], r=1.):
 def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             iopt=0,iskip_last=False,
             ix='1',iy='2',mode='line',ires=True,
-            nArray=None,levels=None,xcoord=None,ycoord=None,**kwargs_ipf):
+            nArray=None,levels=None,xcoord=None,ycoord=None,ilev=0,**kwargs_ipf):
     """
     Decorate matplotlib.pyplot.axes used for plotting
     (inverse) pole figures
@@ -942,6 +942,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     levels
     xcoord
     ycoord
+    ilev (0) 0: 0: do not draw level lines 1: draw level lines
     **kwargs_ipf
     """
     from .sym import calc_cvec
@@ -973,7 +974,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     if iopt==1: pass
     elif iopt==0 and mode in ['fill','line']:
         if proj=='pf':
-            x=[1.32,1.39]
+            x=[1.35,1.39]
         elif proj=='ipf':
             x0=triangle[0].max()+0.02
             x1=x0+0.07
@@ -1038,7 +1039,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ## Add small block dots on the background
     ## in case contouring is done with lines
     ## but not filled.
-    if ires and mode=='line':
+    if ires and mode=='line' and ilev==1:
         filt=nArray[:,:]<levels[0]
         if proj=='ipf':
             filt=np.logical_and(filt,np.logical_not(
@@ -2158,22 +2159,25 @@ class polefigure:
 
                 #--------------------------------------------
                 ## decorating (inverse) pole figures
-                if ideco_lev:ideco_opt=0
-                else:ideco_opt=1
+                # if ideco_lev:ideco_opt=0
+                # elif ideco_lev==False and i==len(poles)-1: ideco_opt=1
+                # else: ideco_opt=0
+                if ideco_lev and i==len(poles)-1: ideco_opt=0
+                else: ideco_opt=1
 
-                if (ilev==1 or (ilev==0 and i==len(axs)-1)):
-                    ## arguments commonly used for PF and IPF
-                    kws=dict(ax=axs[i],proj=proj,
-                             triangle=triangle,cnt=cnts,
-                             miller=miller[i],iopt=ideco_opt,
-                             iskip_last=False,ix=ix,iy=iy,
-                             mode=mode,ires=ires,nArray=nArray[i,:,:],
-                             levels=levels,xcoord=x,ycoord=y)
+                #if (ilev==1 or (ilev==0 and (i==len(axs)-1) or i==len(axs)-2)):
+                ## arguments commonly used for PF and IPF
+                kws=dict(ax=axs[i],proj=proj,
+                         triangle=triangle,cnt=cnts,
+                         miller=miller[i],iopt=ideco_opt,
+                         iskip_last=False,ix=ix,iy=iy,
+                         mode=mode,ires=ires,nArray=nArray[i,:,:],
+                         levels=levels,xcoord=x,ycoord=y,ilev=ilev)
 
-                    if proj=='ipf':
-                        kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
-                                   mask_invpf_tri=mask_invpf_tri)
-                    deco_pf(**kws)
+                if proj=='ipf':
+                    kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
+                               mask_invpf_tri=mask_invpf_tri)
+                deco_pf(**kws)
 
             #------------------------------------------------
             # Decorating the dotted (inverse) pole figures
