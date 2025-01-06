@@ -1,0 +1,58 @@
+*Material: ferrite in DP
+CUBIC           crysym
+1.  1.  1.     90.  90.  90.         cdim(i),cang(i)
+*Elastic stiffness of single crystal [GPa]
+220.3e3   132.0e3   132.0e3   000.0   000.0   000.0
+132.0e3   220.3e3   132.0e3   000.0   000.0   000.0
+132.0e3   132.0e3   220.3e3   000.0   000.0   000.0
+000.0   000.0   000.0   99.1e3   000.0   000.0
+000.0   000.0   000.0   000.0   99.1e3   000.0
+000.0   000.0   000.0   000.0   000.0   99.1e3
+*Thermal expansion coefficients of single crystal[K^(-1)]
+10.0e-6  10.0e-6  10.0e-6   0.0e0   0.0e0   0.0e0                    "alfacc"
+SLIP AND TWINNING MODES
+2                               nmodesx
+2                               nmodes
+1  2                            mode(i)
+{110}<111> SLIP
+  1    12   1   0                       modex,nsmx,iopsysx,itwtypex
+    0    1    1     1    1   -1
+    1    0    1     1    1   -1
+    1   -1    0     1    1   -1
+    0    1   -1     1   -1   -1
+    1    0    1     1   -1   -1
+    1    1    0     1   -1   -1
+    0    1    1     1   -1    1
+    1    0   -1     1   -1    1
+    1    1    0     1   -1    1
+    0    1   -1     1    1    1
+    1    0   -1     1    1    1
+    1   -1    0     1    1    1
+   {112}<111> SLIP
+ 2  12  1   0                       modex,nsmx,iopsysx,itwtypex
+   -2    1   -1    -1   -1    1
+    1   -2   -1    -1   -1    1
+    1    1    2    -1   -1    1
+   -2   -1   -1    -1    1    1
+    1    2   -1    -1    1    1
+    1   -1    2    -1    1    1
+    2    1   -1     1   -1    1
+   -1   -2   -1     1   -1    1
+   -1    1    2     1   -1    1
+    2   -1   -1     1    1    1
+   -1    2   -1     1    1    1
+   -1   -1    2     1    1    1
+*fstar
+7.000000
+*Constitutive law
+   0      Voce=0, MTS=1
+   1      iratesens (0:rate insensitive, 1:rate sensitive)
+   50     grsze --> grain size only matters if HPfactor is non-zero
+  <111>{110} SLIP -------------------------------------------
+ 20                               nrsx
+270.  50.  10.  0.   0.       tau0x,tau1x,thet0,thet1, hpfac
+ 1.0    1.0                          hlatex(1,im),im=1,nmodes
+  <111>{112} SLIP -------------------------------------------
+ 20                               nrsx
+270.  50.  10.   0.   0.    tau0x,tau1x,thet0,thet1, hpfac
+ 1.0    1.0                          hlatex(1,im),im=1,nmodes
