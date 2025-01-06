@@ -989,7 +989,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                 scale=y0/8
                 y=[y0-i*scale, y0-i*scale]
 
-            if not(iskip_last) and i==nlev-1 and mode=='line':
+            if not(iskip_last) and i==nlev-1 and mode=='line' and False:
                 ax.plot((x[0]+x[1])/2.,(y[0]+y[1])/2.,
                         '+',mew=2.,color=cc)
             else:
