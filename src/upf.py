@@ -916,7 +916,7 @@ def __circle__(center=[0,0], r=1.):
 def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             iopt=0,iskip_last=False,
             ix='1',iy='2',mode='line',ires=True,
-            nArray=None,levels=None,xcoord=None,ycoord=None,**kwargs_ipf):
+            nArray=None,levels=None,xcoord=None,ycoord=None,ilev=0,**kwargs_ipf):
     """
     Decorate matplotlib.pyplot.axes used for plotting
     (inverse) pole figures
@@ -942,6 +942,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     levels
     xcoord
     ycoord
+    ilev (0) 0: 0: do not draw level lines 1: draw level lines
     **kwargs_ipf
     """
     from .sym import calc_cvec
@@ -973,7 +974,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     if iopt==1: pass
     elif iopt==0 and mode in ['fill','line']:
         if proj=='pf':
-            x=[1.32,1.39]
+            x=[1.35,1.39]
         elif proj=='ipf':
             x0=triangle[0].max()+0.02
             x1=x0+0.07
@@ -985,7 +986,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             if proj=='pf':
                 y=[1. - i * 0.25, 1. - i * 0.25]
             elif proj=='ipf':
-                y0=triangle[1].max()
+                y0=triangle[1].max()+0.2
                 scale=y0/8
                 y=[y0-i*scale, y0-i*scale]
 
@@ -999,10 +1000,11 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             else:          s='%5.2f'%clev[i]
             ax.text(x=x[0]+0.02,
                     y=y[0],
-                    s=s,fontsize=3.5*fact,va='center')
+                    s=s,fontsize=4.0*fact,va='center')
+
     #--------------------------------------------
-    ## place the Miller indices of three corners
-    ## of the triangle.
+    ## Place the Miller indices at the three
+    ## corners of the triangle.
     if proj=='ipf':
         a=kwargs_ipf['a']
         b=kwargs_ipf['b']
@@ -1037,7 +1039,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ## Add small block dots on the background
     ## in case contouring is done with lines
     ## but not filled.
-    if ires and mode=='line':
+    if ires and mode=='line' and ilev==1:
         filt=nArray[:,:]<levels[0]
         if proj=='ipf':
             filt=np.logical_and(filt,np.logical_not(
@@ -2120,17 +2122,18 @@ class polefigure:
             elif mode in ['dot','dotc']:
                 func = axs[i].scatter
 
-
             #------------------------------------------------
             # Decorating the contoured (inverse) pole figures
             if mode in ['line','contour','fill']:
 
+                #--------------------------------------------
                 ## create necessary objects for color-contours
                 levels, cm_norm, cmap_mpl, color_mapping =\
                     get_pf_color_map_and_norm(
                         levels,cmap,lev_norm_log, mns[i],
                         mxs[i], nlev)
 
+                #--------------------------------------------
                 ## contour plot
                 nArray[i][np.isnan(nArray[i])]=0. ## remove nan
                 nArray[i][nArray[i]<=0]=1e-4      ## remove negative values.
@@ -2142,6 +2145,7 @@ class polefigure:
                     cnts=func(x,y,nArray[i],levels=levels,
                               cmap=cmap,norm=cm_norm,zorder=10)
 
+                #--------------------------------------------
                 # Indicate maximum location only for 'line' contours
                 # but not the 'filled' contours.
                 if mode=='line':
@@ -2150,32 +2154,36 @@ class polefigure:
                     mx_coord_x = x[i0,j0]
                     mx_coord_y = y[i0,j0]
                     axs[i].plot(mx_coord_x,mx_coord_y,'+',mew=2,
+                                zorder=1e2,
                                 color=color_mapping.to_rgba(levels[-1]))
 
                 #--------------------------------------------
                 ## decorating (inverse) pole figures
-                if ideco_lev:ideco_opt=0
-                else:ideco_opt=1
+                # if ideco_lev:ideco_opt=0
+                # elif ideco_lev==False and i==len(poles)-1: ideco_opt=1
+                # else: ideco_opt=0
+                if ideco_lev and i==len(poles)-1: ideco_opt=0
+                else: ideco_opt=1
 
-                if (ilev==1 or (ilev==0 and i==len(axs)-1)):
-                    ## arguments commonly used for PF and IPF
-                    kws=dict(ax=axs[i],proj=proj,
-                             triangle=triangle,cnt=cnts,
-                             miller=miller[i],iopt=ideco_opt,
-                             iskip_last=False,ix=ix,iy=iy,
-                             mode=mode,ires=ires,nArray=nArray[i,:,:],
-                             levels=levels,xcoord=x,ycoord=y)
+                #if (ilev==1 or (ilev==0 and (i==len(axs)-1) or i==len(axs)-2)):
+                ## arguments commonly used for PF and IPF
+                kws=dict(ax=axs[i],proj=proj,
+                         triangle=triangle,cnt=cnts,
+                         miller=miller[i],iopt=ideco_opt,
+                         iskip_last=False,ix=ix,iy=iy,
+                         mode=mode,ires=ires,nArray=nArray[i,:,:],
+                         levels=levels,xcoord=x,ycoord=y,ilev=ilev)
 
-                    if proj=='ipf':
-                        kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
-                                   mask_invpf_tri=mask_invpf_tri)
-                    deco_pf(**kws)
+                if proj=='ipf':
+                    kws.update(a=a,b=b,c=c,fnsx=self.fnsx,
+                               mask_invpf_tri=mask_invpf_tri)
+                deco_pf(**kws)
 
+            #------------------------------------------------
+            # Decorating the dotted (inverse) pole figures
             elif mode in ['dot','dotc']:
-                if ideco_lev:
-                    ideco_opt=0
-                else:
-                    ideco_opt=1
+                if ideco_lev: ideco_opt=0
+                else: ideco_opt=1
                 x=pf_dots[i][:,0]
                 y=pf_dots[i][:,1]
 
@@ -2186,14 +2194,12 @@ class polefigure:
                         get_pf_color_map_and_norm(
                             levels,cmap,lev_norm_log,
                             pf_dots_wgt[i].min(),
-                            pf_dots_wgt[i].max(),
-                            nlev)
+                            pf_dots_wgt[i].max(),nlev)
 
                     print('min and max wgt:', pf_dots_wgt[i].min(),
                           pf_dots_wgt[i].max())
 
                     kwargs.update(c=pf_dots_wgt[i])
-
 
                 func(x,y,**kwargs)
 
