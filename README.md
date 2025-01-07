@@ -60,11 +60,11 @@ $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 | `mx`           | Maximun level of contour                                          | None            |
 | `lev_norm_log` | If True, use logarithmic scales. If False, linear scale.          | True            |
 | `nlev`         | Level of iso contour bins                                         | 7               |
-| `cmap`         | Color map used to color-code the contour levels.                  |                 |
+| `cmap`         | Color map used to color-code the contour levels                   |                 |
 | `iline_khi80`  | Whether or not to draw a line of chi=80                           |                 |
 | `mode`         | ex. Contour modes, dot modes                                      | 'line'          |
-| `ilev`         | Miller index of Polefigure                                        | 1               |
-| `levels`       | level options have 0 or 1                                         | None            |
+| `ilev`         | Level options to apply to the pole (0 or 1)                       | 1               |
+| `levels`       | Default is None. One can define levels of the contours            | None            |
 | `transform`    | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
 | `ideco_lev`    | switch to turn on or off the levels                               | True            |
 | `ismooth`      | Contours become smooth                                            | 1               |
@@ -127,29 +127,29 @@ polefigure 생성
 ### pf_new
 | 인자      |   설명                                                   | 기본값   |
 |:---------------|:------------------------------------------------------------------|:----------------|
-| `ifig`         | figure index(ifig와 axs를 동시에 사용할 수 없음)       | None            |
-| `axs`          | graph나 plot에서 축 또는 부분 plot 배열하기                  | None            |
-| `proj`         | proj는 'pf' 또는 'ipf'일 수 있음                                  | 'pf'            |
-| `poles`        | pole figure의 miller index                                        |[[1,0,0],[1,1,0]]|
-| `ix`, `iy`     | 각 극점도에 추가되는 x 및 y 눈금            | ix='1',iy='2'   | 
-| `dph`          | 틸팅 각도 격자                                         | 10              |
-| `dth`          | 평면 내 회전 각도 격자                                   | 10              |
-| `rot`          | 평면 내 회전 (radian)                                      |                 |
-| `n_rim`        | *평균*화할 '중심' 가장자리의 수                    | 2               |
-| `cdim`         | 격자 상수                                               | None            |
-| `ires`         | If True, indicate the grid                                        | True            |
-| `mn`           | Minimun level of contour                                          | None            |
-| `mx`           | Maximun level of contour                                          | None            |
-| `lev_norm_log` | If True, use logarithmic scales. If False, linear scale.          | True            |
-| `nlev`         | Level of iso contour bins                                         | 7               |
-| `cmap`         | Color map used to color-code the contour levels.                  |                 |
-| `iline_khi80`  | Whether or not to draw a line of chi=80                           |                 |
-| `mode`         | ex. Contour modes, dot modes                                      | 'line'          |
-| `ilev`         | Miller index of Polefigure                                        | 1               |
-| `levels`       | level options have 0 or 1                                         | None            |
-| `transform`    | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
-| `ideco_lev`    | switch to turn on or off the levels                               | True            |
-| `ismooth`      | Contours become smooth                                            | 1               |
+| `ifig`         | figure index(ifig와 axs를 동시에 사용할 수 없음)                     | None            |
+| `axs`          | graph나 plot에서 축 또는 부분 plot 배열하기                          | None            |
+| `proj`         | proj는 'pf' 또는 'ipf'일 수 있음                                    | 'pf'            |
+| `poles`        | pole figure의 miller index                                         |[[1,0,0],[1,1,0]]|
+| `ix`, `iy`     | 각 극점도에 추가되는 x 및 y 눈금                                     | ix='1',iy='2'   | 
+| `dph`          | 틸팅 각도 격자                                                      | 10              |
+| `dth`          | 평면 내 회전 각도 격자                                               | 10              |
+| `rot`          | 평면 내 회전 (radian)                                               |                 |
+| `n_rim`        | *평균*화할 '중심' 가장자리의 수                                      | 2               |
+| `cdim`         | 격자 상수                                                           | None            |
+| `ires`         | True라면, grid 표시.                                                | True            |
+| `mn`           | 등고선의 최소 level                                                  | None            |
+| `mx`           | 등고선의 최대 level                                                  | None            |
+| `lev_norm_log` | True라면, log scale 사용. False라면, linear scale 사용.              | True            |
+| `nlev`         | 등위 등고선 값값의 정도                                              | 7               |
+| `cmap`         | 윤곽선 level에 색을 넣는 맵                                          |                 |
+| `iline_khi80`  | chi=80의 선을 그릴지 여부                                            |                 |
+| `mode`         | ex. Contour modes, dot modes                                       | 'line'          |
+| `ilev`         | 극에 적용할 레벨 옵션(0 or 1)                                        | 1               |
+| `levels`       | 기본값 X. 윤곽선의 레벨을 정의                                       | None            |
+| `transform`    | 다결정 집합체에 적용된 변환 행렬                                     | 'magma'         |
+| `ideco_lev`    | level을 켜거나 끄는 switch                                          | True            |
+| `ismooth`      | 등고선이 부드러워짐                                                 | 1               |
 
 
 ![example image](README/Figure_1.png)
