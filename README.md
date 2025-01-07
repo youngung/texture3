@@ -69,9 +69,9 @@ $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 | `ideco_lev`    | switch to turn on or off the levels                               | True            |
 | `ismooth`      | Contours become smooth                                            | 1               |
 
-![example image](README/Figure_1.png)
+![example image](README/Figure_1.png)<br>
 *Use arument poles only*
-![example image](README/Figure_2.png)
+![example image](README/Figure_2.png)<br>
 *Use additional arguments mn, mx, ismooth*
 
 
@@ -104,8 +104,8 @@ mypf = upf.polefigure(fnsx='fnsx file name', filename='TEX_PH1.OUT')
 ```mypf```에 데이터 저장, evpsc 시뮬레이션에 사용한 ```fnsx```파일, 시뮬레이션 이후  생성된 ```TEX_PH1.OUT```를 Arguments로 사용
 
 ### class polefigure:
-| 인자                                            |   설명                                 | 기본값         |
-|:------------------------------------------------|:--------------------------------------|:---------------|
+| 인자                                            |   설명                                 | 기본값        |
+|:------------------------------------------------|:--------------------------------------|:--------------|
 | `grains` 또는 `filename`                        | 결정립 데이터 또는 파일의 이름           | None          |
 | `fnsx`                                          | VPSC 계열 코드에서 사용되는 단결정 파일  | None          |
 | `fnsx`이 없는 경우 `csym`, `cdim`, `cang`를 사용 |                                        |               |  
@@ -125,8 +125,8 @@ polefigure 생성
 ```pf_new```
 
 ### pf_new
-| 인자      |   설명                                                   | 기본값   |
-|:---------------|:------------------------------------------------------------------|:----------------|
+| 인자           |   설명                                                              | 기본값          |
+|:---------------|:-------------------------------------------------------------------|:----------------|
 | `ifig`         | figure index(ifig와 axs를 동시에 사용할 수 없음)                     | None            |
 | `axs`          | graph나 plot에서 축 또는 부분 plot 배열하기                          | None            |
 | `proj`         | proj는 'pf' 또는 'ipf'일 수 있음                                    | 'pf'            |
@@ -138,22 +138,22 @@ polefigure 생성
 | `n_rim`        | *평균*화할 '중심' 가장자리의 수                                      | 2               |
 | `cdim`         | 격자 상수                                                           | None            |
 | `ires`         | True라면, grid 표시.                                                | True            |
-| `mn`           | 등고선의 최소 level                                                  | None            |
-| `mx`           | 등고선의 최대 level                                                  | None            |
-| `lev_norm_log` | True라면, log scale 사용. False라면, linear scale 사용.              | True            |
-| `nlev`         | 등위 등고선 값값의 정도                                              | 7               |
-| `cmap`         | 윤곽선 level에 색을 넣는 맵                                          |                 |
-| `iline_khi80`  | chi=80의 선을 그릴지 여부                                            |                 |
-| `mode`         | ex. Contour modes, dot modes                                       | 'line'          |
-| `ilev`         | 극에 적용할 레벨 옵션(0 or 1)                                        | 1               |
-| `levels`       | 기본값 X. 윤곽선의 레벨을 정의                                       | None            |
-| `transform`    | 다결정 집합체에 적용된 변환 행렬                                     | 'magma'         |
-| `ideco_lev`    | level을 켜거나 끄는 switch                                          | True            |
-| `ismooth`      | 등고선이 부드러워짐                                                 | 1               |
+| `mn`           | 등고선의 최소 level                                                 | None            |
+| `mx`           | 등고선의 최대 level                                                 | None            |
+| `lev_norm_log` | True라면, log scale 사용. False라면, linear scale 사용.             | True            |
+| `nlev`         | 등위 등고선 값값의 정도                                             | 7               |
+| `cmap`         | 윤곽선 level에 색을 넣는 맵                                         |                 |
+| `iline_khi80`  | chi=80의 선을 그릴지 여부                                           |                 |
+| `mode`         | ex. Contour modes, dot modes                                      | 'line'          |
+| `ilev`         | 극에 적용할 레벨 옵션(0 or 1)                                       | 1               |
+| `levels`       | 기본값 X. 윤곽선의 레벨을 정의                                      | None            |
+| `transform`    | 다결정 집합체에 적용된 변환 행렬                                    | 'magma'         |
+| `ideco_lev`    | level을 켜거나 끄는 switch                                         | True            |
+| `ismooth`      | 등고선이 부드러워짐                                                | 1               |
 
 
-![example image](README/Figure_1.png)
+![example image](README/Figure_1.png)<br>
 *poles arument만 사용*
 
-![example image](README/Figure_2.png)
+![example image](README/Figure_2.png)<br>
 *mn, mx, ismooth arguments를 추가로 사용*
