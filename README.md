@@ -27,7 +27,7 @@ Use [`fnsx`](README/F_voce.sx) file used in evpsc simulation and [`TEX_PH1.OUT`]
 ### class polefigure:
 | Arguments                                       |    Description                                | Default value |
 |:------------------------------------------------|:----------------------------------------------|:--------------|
-| `grains` or `filename`                          | Grains data file or name of file              | None          |
+| `grains` or `filename`                          | Grains data or name of file              | None          |
 | `fnsx`                                          | Single crystal file used in VPSC-family codes | None          |
 | if not have `fnsx`, use `csym`, `cdim`, `cang`  |                                               |               |  
 | `csym`                                          | Crystal symmetry  ex. 'cubic' or'hexag'       |               |
@@ -37,6 +37,7 @@ Use [`fnsx`](README/F_voce.sx) file used in evpsc simulation and [`TEX_PH1.OUT`]
 | `ngarin`                                        | Number of grains                              | 100           | 
 | `epf`                                           | experimental pole figure file                 | None          | 
 | `epf_mode`                                      | epf file mode, 'epf' or 'xpc'                 |               |
+
 ```
 $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 ```
@@ -101,17 +102,55 @@ module ```TX```에서 ```upf```불러오기
 mypf = upf.polefigure(fnsx='fnsx file name', filename='TEX_PH1.OUT')
 ```
 ```mypf```에 데이터 저장, evpsc 시뮬레이션에 사용한 ```fnsx```파일, 시뮬레이션 이후  생성된 ```TEX_PH1.OUT```를 Arguments로 사용
+
+### class polefigure:
+| 인자                                            |   설명                                 | 기본값         |
+|:------------------------------------------------|:--------------------------------------|:---------------|
+| `grains` 또는 `filename`                        | 결정립 데이터 또는 파일의 이름           | None          |
+| `fnsx`                                          | VPSC 계열 코드에서 사용되는 단결정 파일  | None          |
+| `fnsx`이 없는 경우 `csym`, `cdim`, `cang`를 사용 |                                        |               |  
+| `csym`                                          | 결정 대칭성, 예시. '입방정' 또는 '육방정'|               |
+| `cdim`                                          | 격자 상수                              | [1.,1.,1.]    |
+| `cang`                                          | 격자 각도                              | [90.,90.,90.] | 
+| `ssym`                                          | 샘플 대칭성: 현재 구현되지 않음...       | False         |  
+| `ngarin`                                        | 결정립 수                              | 100           | 
+| `epf`                                           | 실험 데이터를 포함하는 극점도 파일       | None          | 
+| `epf_mode`                                      | 극점도 파일 모드, 'epf' 또는 'xpc'      |               |
+
+
 ```python
 mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 ```
 polefigure 생성
 ```pf_new```
-| Arguments                |    Description                            |
-|:-------------------------|:------------------------------------------|
-|poles                     | Polefigure의 Miller index를 지정           |
-|mn                        | 등고선의 최솟값을 지정                      |
-|mx                        | 등고선의 최댓값을 지정                      |
-|ismooth                   | 등고선이 각지지 않고 부드럽게 나타냄         |
+
+### pf_new
+| 인자      |   설명                                                   | 기본값   |
+|:---------------|:------------------------------------------------------------------|:----------------|
+| `ifig`         | figure index(ifig와 axs를 동시에 사용할 수 없음)       | None            |
+| `axs`          | graph나 plot에서 축 또는 부분 plot 배열하기                  | None            |
+| `proj`         | proj는 'pf' 또는 'ipf'일 수 있음                                  | 'pf'            |
+| `poles`        | pole figure의 miller index                                        |[[1,0,0],[1,1,0]]|
+| `ix`, `iy`     | 각 극점도에 추가되는 x 및 y 눈금            | ix='1',iy='2'   | 
+| `dph`          | 틸팅 각도 격자                                         | 10              |
+| `dth`          | 평면 내 회전 각도 격자                                   | 10              |
+| `rot`          | 평면 내 회전 (radian)                                      |                 |
+| `n_rim`        | *평균*화할 '중심' 가장자리의 수                    | 2               |
+| `cdim`         | 격자 상수                                               | None            |
+| `ires`         | If True, indicate the grid                                        | True            |
+| `mn`           | Minimun level of contour                                          | None            |
+| `mx`           | Maximun level of contour                                          | None            |
+| `lev_norm_log` | If True, use logarithmic scales. If False, linear scale.          | True            |
+| `nlev`         | Level of iso contour bins                                         | 7               |
+| `cmap`         | Color map used to color-code the contour levels.                  |                 |
+| `iline_khi80`  | Whether or not to draw a line of chi=80                           |                 |
+| `mode`         | ex. Contour modes, dot modes                                      | 'line'          |
+| `ilev`         | Miller index of Polefigure                                        | 1               |
+| `levels`       | level options have 0 or 1                                         | None            |
+| `transform`    | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
+| `ideco_lev`    | switch to turn on or off the levels                               | True            |
+| `ismooth`      | Contours become smooth                                            | 1               |
+
 
 ![example image](README/Figure_1.png)
 *poles arument만 사용*
