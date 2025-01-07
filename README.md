@@ -23,36 +23,50 @@ mypf = upf.polefigure(fnsx='fnsx file name', filename='TEX_PH1.OUT')
 
 Save data in `mypf`,
 Use [`fnsx`](README/F_voce.sx) file used in evpsc simulation and [`TEX_PH1.OUT`](README/TEX_PH1_5000.OUT) created after the simulation as Arguments
+
+### class polefigure:
+| Arguments                                       |    Description                                | Default value |
+|:------------------------------------------------|:----------------------------------------------|:--------------|
+| `grains` or `filename`                          | Grains data file or name of file              | None          |
+| `fnsx`                                          | Single crystal file used in VPSC-family codes | None          |
+| if not have `fnsx`, use `csym`, `cdim`, `cang`  |                                               |               |  
+| `csym`                                          | Crystal symmetry  ex. 'cubic' or'hexag'       |               |
+| `cdim`                                          | Lattice constants                             | [1.,1.,1.]    |
+| `cang`                                          | Lattice angles                                | [90.,90.,90.] | 
+| `ssym`                                          | Sample symmetry: not even started...          | False         |  
+| `ngarin`                                        | Number of grains                              | 100           | 
+| `epf`                                           | experimental pole figure file                 | None          | 
+| `epf_mode`                                      | epf file mode, 'epf' or 'xpc'                 |               |
 ```
 $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 ```
 ```pf_new``` do Draw Polefigure
-
-| Arguments      |    Description                                                    | default value   |
+### pf_new
+| Arguments      |    Description                                                    | Default value   |
 |:---------------|:------------------------------------------------------------------|:----------------|
-| ifig           | figure index(ifig and axs cannot be used at the same time.)       | None            |
-| axs            | Arranging an axis or subplot in a graph or plot                   | None            |
-| proj           | proj can be either 'pf' or 'ipf'                                  | 'pf'            |
-| poles          | Miller index of Polefigure                                        |[[1,0,0],[1,1,0]]|
-| ix, iy         | x and y tick labels appended to each pole figure                  | ix='1',iy='2'   | 
-| dph            | Grid of tilting angle                                             | 10              |
-| dth            | Grid of in-plane rotation angle                                   | 10              |
-| rot            | in-plane rotatation (radian)                                      |                 |
-| n_rim          | The number of 'central' rims to be *averaged*                     | 2               |
-| cdim           | crystal dimension                                                 | None            |
-| ires           | If True, indicate the grid                                        | True            |
-| mn             | Minimun level of contour                                          | None            |
-| mx             | Maximun level of contour                                          | None            |
-| lev_norm_log   | If True, use logarithmic scales. If False, linear scale.          | True            |
-| nlev           | Level of iso contour bins                                         | 7               |
-| cmap           | Color map used to color-code the contour levels.                  |                 |
-| iline_khi80    | Whether or not to draw a line of chi=80                           |                 |
-| mode           | ex. Contour modes, dot modes                                      | 'line'          |
-| ilev           | Miller index of Polefigure                                        | 1               |
-| levels         | level options have 0 or 1                                         | None            |
-| transform      | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
-| ideco_lev      | switch to turn on or off the levels                               | True            |
-| ismooth        | Contours become smooth                                            | 1               |
+| `ifig`         | figure index(ifig and axs cannot be used at the same time.)       | None            |
+| `axs`          | Arranging an axis or subplot in a graph or plot                   | None            |
+| `proj`         | proj can be either 'pf' or 'ipf'                                  | 'pf'            |
+| `poles`        | Miller index of Polefigure                                        |[[1,0,0],[1,1,0]]|
+| `ix`, `iy`     | x and y tick labels appended to each pole figure                  | ix='1',iy='2'   | 
+| `dph`          | Grid of tilting angle                                             | 10              |
+| `dth`          | Grid of in-plane rotation angle                                   | 10              |
+| `rot`          | in-plane rotatation (radian)                                      |                 |
+| `n_rim`        | The number of 'central' rims to be *averaged*                     | 2               |
+| `cdim`         | crystal dimension                                                 | None            |
+| `ires`         | If True, indicate the grid                                        | True            |
+| `mn`           | Minimun level of contour                                          | None            |
+| `mx`           | Maximun level of contour                                          | None            |
+| `lev_norm_log` | If True, use logarithmic scales. If False, linear scale.          | True            |
+| `nlev`         | Level of iso contour bins                                         | 7               |
+| `cmap`         | Color map used to color-code the contour levels.                  |                 |
+| `iline_khi80`  | Whether or not to draw a line of chi=80                           |                 |
+| `mode`         | ex. Contour modes, dot modes                                      | 'line'          |
+| `ilev`         | Miller index of Polefigure                                        | 1               |
+| `levels`       | level options have 0 or 1                                         | None            |
+| `transform`    | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
+| `ideco_lev`    | switch to turn on or off the levels                               | True            |
+| `ismooth`      | Contours become smooth                                            | 1               |
 
 ![example image](README/Figure_1.png)
 *Use arument poles only*
