@@ -71,6 +71,7 @@ $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 
 ![example image](README/Figure_1.png)<br>
 *Use arument poles only*
+
 ![example image](README/Figure_2.png)<br>
 *Use additional arguments mn, mx, ismooth*
 
