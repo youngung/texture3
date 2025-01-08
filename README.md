@@ -52,7 +52,7 @@ Use [`fnsx`](README/F_voce.sx) file used in evpsc simulation and [`TEX_PH1.OUT`]
 | `ngarin`                                        | Number of grains                              | 100           | 
 | `epf`                                           | experimental pole figure file                 | None          | 
 | `epf_mode`                                      | epf file mode, 'epf' or 'xpc'                 |               |
-
+*If you want more detail of arguments, refer to [`upf.py`](src/upf.py#L1291)*
 ```
 $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 ```
@@ -83,6 +83,7 @@ $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 | `transform`    | transformation matrix applied to the entire polycrystal aggregate | 'magma'         |
 | `ideco_lev`    | switch to turn on or off the levels                               | True            |
 | `ismooth`      | Contours become smooth                                            | 1               |
+*If you want more detail of arguments, refer to [`upf.py`](src/upf.py#L1872)*
 
 ![example image](README/Figure_1.png)<br>
 *Use arument poles only*
@@ -141,7 +142,7 @@ mypf = upf.polefigure(fnsx='fnsx file name', filename='TEX_PH1.OUT')
 | `ngarin`                                        | 결정립 수                              | 100           | 
 | `epf`                                           | 실험 데이터를 포함하는 극점도 파일       | None          | 
 | `epf_mode`                                      | 극점도 파일 모드, 'epf' 또는 'xpc'      |               |
-
+*인자들에 관하여 더 자세한 정보를 원하면 [`upf.py`](src/upf.py#L1291)을 참고*
 
 ```python
 mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
@@ -175,7 +176,7 @@ polefigure 생성
 | `transform`    | 다결정 집합체에 적용된 변환 행렬                                    | 'magma'         |
 | `ideco_lev`    | level을 켜거나 끄는 switch                                         | True            |
 | `ismooth`      | 등고선이 부드러워짐                                                | 1               |
-
+*인자들에 관하여 더 자세한 정보를 원하면 [`upf.py`](src/upf.py#L1872)을 참고*
 ![example image](README/Figure_1.png)<br>
 *poles arument만 사용*
 
