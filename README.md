@@ -91,16 +91,12 @@ $ mypf.pf_new(poles=[[1,0,0],[1,1,0]],mn=0.5,mx=3.5,ismooth=10)
 ![example image](README/Figure_2.png)<br>
 *Use additional arguments mn, mx, ismooth*
 
-
 ## 3. More examples
 ![Ti polefigure(0001)](README/(0001)pf_Ti.png)<br>
 (0001) Polefigure of Titanium
 
 ![U polefigure(100),(010),(001)](README/uranium.png)<br>
 (100), (010), (001) Polefigure of Uranium
-
-
-
 
 
 # Pole figure 그리기
