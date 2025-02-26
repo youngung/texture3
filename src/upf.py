@@ -2066,11 +2066,12 @@ class polefigure:
             pf_dots_col=[]
             for i in range(len(poles)): # crystal or sample poles
                 print(f'poles[i]:: {poles[i]}')
-                XY,wgt,col_val=cells_pf(
+                rst=cells_pf(
                     1,proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
                     cdim=self.cdim,grains=self.gr,
                     n_rim = n_rim,transform=transform)
+                XY,wgt,col_val=rst[0],rst[1],rst[2]
 
                 ## masking XY ...
                 if proj=='ipf':
@@ -2489,7 +2490,8 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
     """
     from . import sym
 
-    tiny = 1e-9
+    #tiny = 1e-9
+    tiny = 1e-1
     ## Set of equivalent vectors based on crystal symmetry
     pole=np.array(pole)
     if proj=='pf':
@@ -2565,13 +2567,13 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         for ip, pole in enumerate(poles_projected):
             ## Convert each 3D pole to (x,y) coordinates
             x,y=projection(pole)
-            if x**2+y**2<=1+tiny: ## If within the circle
+            if x**2+y**2<=1+tiny or True: ## If within the circle
                 y=-y; x=-x
                 XY.append([x,y])
                 WGT.append(poles_wgt[ip])
                 COL_val.append(poles_col[ip,:])
 
-        return np.array(XY), np.array(WGT), np.array(COL_val)
+        return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
@@ -3028,9 +3030,7 @@ def get_ipf_boundary(nres=5,fnsx=None):
     a, b, c : Miller-indexed poles which consist the fundamental triangle.
     """
     from . import sym
-
-    #icsym=sym.get_icsym(csym)
-    csym, cdim, cang = sym.read_fnsx(fnsx)
+    csym, _cdim_, _cang_ = sym.read_fnsx(fnsx)
 
     # ## determine the three poles that define the fundamental zones.
     if csym=='cubic':
@@ -3046,8 +3046,9 @@ def get_ipf_boundary(nres=5,fnsx=None):
         b=[1,0,0]
         c=[0,1,0]
     else:
-        raise IOError('Error: need to validate other crystal symmetries.')
-
+        msg='Error: need to validate <get_ipf_boundary>'
+        msg=f'{msg} for other crystal symmetries.'
+        raise IOError(msg)
 
     pairs=[[a,b],[b,c],[c,a]]
     coords=np.zeros((2,(nres-1)*3+1))
