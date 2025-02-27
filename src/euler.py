@@ -107,7 +107,7 @@ def euler(ph=None, th=None, tm=None, a=None, echo=True):
 
 
 
-def eulers(phs=None, ths=None, tms=None, amats=None, echo=True,iopt=None):
+def eulers(phs=None, ths=None, tms=None, amats=None, echo=False,iopt=None):
     """
     This module is to allow calculate Euler angles or transformation matrices
     multiple times without requiring going over loops. The procedure relies

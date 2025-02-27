@@ -1149,10 +1149,10 @@ def projection2(poles):
 
     nflags=np.logical_not(flags)
 
-    Xs[flags]=0
-    Ys[flags]=0
-    Xs[nflags]=As/(Cs-1.)
-    Ys[nflags]=Bs/(Cs-1.)
+    Xs[flags]=0.
+    Ys[flags]=0.
+    Xs[nflags]=As[nflags]/(Cs[nflags]-1.)
+    Ys[nflags]=Bs[nflags]/(Cs[nflags]-1.)
 
     return Xs,Ys
 
@@ -2604,7 +2604,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_ca=np.tensordot(amats,pole,axes=1) ## last 1 dimension of amats, first 1 dimensioin of pole
         time_stamps.append(time.perf_counter()) #-- 3
         poles_projected[:,:nsymop,:]=np.tensordot(poles_ca,H,axes=([1,2]))
-        print(f'2poles_projected.shape: {poles_projected.shape}')
+        # print(f'2poles_projected.shape: {poles_projected.shape}')
 
         for j in range(len(H)*2):
             poles_col[:,j,:]=grains[:,4:]
@@ -2632,6 +2632,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
                     WGT.append(poles_wgt[ip])
                     COL_val.append(poles_col[ip,:])
         else:
+            # print(f'poles_projected: {poles_projected}')
             xs,ys=projection2(poles_projected)
             rs=np.sqrt(xs**2+ys**2)
             xs=-xs
@@ -2651,7 +2652,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         time_stamps=np.array(time_stamps)
         dt_all=time_stamps[-1]-time_stamps[0]
         dts=np.diff(time_stamps)
-        if True:
+        if False:
             for i, dt in enumerate(dts):
                 print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
         return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected
