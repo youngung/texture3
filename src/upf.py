@@ -2569,21 +2569,48 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
         poles_wgt        = np.zeros((len(grains),nsymop*2))
         poles_col        = np.zeros((len(grains),nsymop*2,n_extra_col))
+        amats=np.zeros((len(grains),3,3))
+        poles_ca=np.zeros((len(grains),3))
         for i, gr in enumerate(grains):
             phi1,phi,phi2,wgt=gr[:4]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-            pole_ca=np.dot(amat, np.array(pole))## ca<-sa, sa
-            for j, h in enumerate(H): # ca(new)<-ca(old)
-                poles_projected[i,j*2,  :]=np.dot(h, pole_ca)
-                poles_projected[i,j*2+1,:]=np.dot(h,-pole_ca)
-                poles_col[i,j*2,:]=gr[4:]
-                poles_col[i,j*2+1,:]=gr[4:]
-            poles_wgt[i,:] = wgt
+            amats[i,:,:]=amat[:,:]
+
+        time_stamps.append(time.perf_counter())
+
+        if False:
+            for i, gr in enumerate(grains):
+                amat=amats[i,:,:]
+                poles_ca[i,:]=np.dot(amat, np.array(pole))## ca<-sa, sa
+                # p[i,j] = amats[i,j,k]*pole[k]
+        else:
+            print('checked 1??')
+            poles_ca=np.tensordot(amats,pole,axes=1)
+
+        time_stamps.append(time.perf_counter())
+
+        if False: ## slower
+            for i, gr in enumerate(grains):
+                pole_ca=poles_ca[i,:]
+                for j, h in enumerate(H): # ca(new)<-ca(old)
+                    poles_projected[i,j*2,  :]=np.dot(h, pole_ca)
+                    poles_projected[i,j*2+1,:]=-poles_projected[i,j*2,  :]
+                    poles_col[i,j*2,:]=gr[4:]
+                    poles_col[i,j*2+1,:]=gr[4:]
+                poles_wgt[i,:] = wgt
+        else: ## faster
+            print(f'len(grains):{len(grains)}')
+            for i, gr in enumerate(grains):
+                pole_ca=poles_ca[i,:]
+                for j, h in enumerate(H): # ca(new)<-ca(old)
+                    poles_projected[i,j,  :]=np.dot(h, pole_ca)
+            for j in range(len(H)*2):
+                poles_col[:,j,:]=grains[:,4:]
+            poles_wgt[:,:] = wgt
+            poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
 
 
-        #poles_projected[:,nsymop:2*nsymop,:]=-poles_projected[:,0:nsymop,:]
-        #poles_col[:,nsymop:2*nsymop]=poles_col[:,0:nsymop]
-        #poles_wgt[:,nsymop:2*nsymop]=poles_wgt[:,0:nsymop]
+        time_stamps.append(time.perf_counter())
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
         poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
@@ -2627,7 +2654,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         dt_all=time_stamps[-1]-time_stamps[0]
         dts=np.diff(time_stamps)
         for i, dt in enumerate(dts):
-            print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} \%')
+            print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
 
         # print(f't2-t0: %5.1f'%(t2-t0))
         # print(f't2-t1: %5.1f'%(t2-t1))
