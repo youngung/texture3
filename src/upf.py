@@ -113,6 +113,7 @@ import matplotlib #matplotlib as raw
 import os, glob, math
 from .randomEuler import randomEuler as re
 from .euler import euler # in euler module def euler:
+from .euler import eulers
                         # A-matrix and Euler angles
 import time,random
 import fortranformat as ff
@@ -2534,20 +2535,38 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_projected  = np.zeros((len(grains),len(poles_ca),3))
         poles_wgt        = np.zeros((len(grains),len(poles_ca)))
         poles_col        = np.zeros((len(grains),len(poles_ca),n_extra_col))
+        amats=np.zeros((len(grains),3,3))
+        wgts=np.zeros(len(grains))
 
-        for i, gr in enumerate(grains):
-            phi1,phi,phi2,wgt = gr[:4]
-            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-            amat=amat.T ## sa<-ca
+        if False:
+            for i, gr in enumerate(grains):
+                phi1,phi,phi2,wgt = gr[:4]
+                wgts[i]=wgt
+                amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+                amat=amat.T ## sa<-ca
+                if (transform==np.identity(3)).all():pass
+                else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
+                amats[i,:,:]=amat[:,:]
+        else:
+            phi1s=grains[:,0]
+            phis=grains[:,1]
+            phi2s=grains[:,2]
+            wgts=grains[:,3]
+
+            amats=eulers(phi1s,phis,phi2s,iopt=2)
+            ## transform[3,3] amats[g,3,3]
             if (transform==np.identity(3)).all():pass
-            else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
+            else:amats=np.tensordot(amats,transform,axes=([1,1]))
 
-            ## multiple crystal poles may exist for each given (hkl)
-            ## due to the crystal symmetry
+        ## multiple crystal poles may exist for each given (hkl)
+        ## due to the crystal symmetry
+        for i, gr in enumerate(grains):
+            amat=amats[i,:,:]
             for j, pole_ca in enumerate(poles_ca):
                 poles_projected[i,j,:] = np.dot(amat,pole_ca)
                 poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
-            poles_wgt[i,:]  = wgt
+
+            poles_wgt[i,:]  = wgts[i]
 
         poles_projected  = poles_projected.reshape( (len(grains)*len(poles_ca),3))
         poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
@@ -2571,52 +2590,33 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_col        = np.zeros((len(grains),nsymop*2,n_extra_col))
         amats=np.zeros((len(grains),3,3))
         poles_ca=np.zeros((len(grains),3))
-        for i, gr in enumerate(grains):
-            phi1,phi,phi2,wgt=gr[:4]
-            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-            amats[i,:,:]=amat[:,:]
-
-        time_stamps.append(time.perf_counter())
-
+        time_stamps.append(time.perf_counter()) #-- 1
         if False:
             for i, gr in enumerate(grains):
-                amat=amats[i,:,:]
-                poles_ca[i,:]=np.dot(amat, np.array(pole))## ca<-sa, sa
-                # p[i,j] = amats[i,j,k]*pole[k]
+                phi1,phi,phi2,wgt=gr[:4]
+                amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+                amats[i,:,:]=amat[:,:]
         else:
-            print('checked 1??')
-            poles_ca=np.tensordot(amats,pole,axes=1)
+            amats=eulers(grains[:,0],grains[:,1],grains[:,2],iopt=2)
+            wgts=grains[:,3]
 
-        time_stamps.append(time.perf_counter())
+        time_stamps.append(time.perf_counter()) #-- 2 (getting euler matrices individual takes longer time and is a bottleneck.)
+        poles_ca=np.tensordot(amats,pole,axes=1) ## last 1 dimension of amats, first 1 dimensioin of pole
+        time_stamps.append(time.perf_counter()) #-- 3
+        poles_projected[:,:nsymop,:]=np.tensordot(poles_ca,H,axes=([1,2]))
+        print(f'2poles_projected.shape: {poles_projected.shape}')
 
-        if False: ## slower
-            for i, gr in enumerate(grains):
-                pole_ca=poles_ca[i,:]
-                for j, h in enumerate(H): # ca(new)<-ca(old)
-                    poles_projected[i,j*2,  :]=np.dot(h, pole_ca)
-                    poles_projected[i,j*2+1,:]=-poles_projected[i,j*2,  :]
-                    poles_col[i,j*2,:]=gr[4:]
-                    poles_col[i,j*2+1,:]=gr[4:]
-                poles_wgt[i,:] = wgt
-        else: ## faster
-            print(f'len(grains):{len(grains)}')
-            for i, gr in enumerate(grains):
-                pole_ca=poles_ca[i,:]
-                for j, h in enumerate(H): # ca(new)<-ca(old)
-                    poles_projected[i,j,  :]=np.dot(h, pole_ca)
-            for j in range(len(H)*2):
-                poles_col[:,j,:]=grains[:,4:]
-            poles_wgt[:,:] = wgt
-            poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
+        for j in range(len(H)*2):
+            poles_col[:,j,:]=grains[:,4:]
+            poles_wgt[:,j] = wgts[:]
 
-
-        time_stamps.append(time.perf_counter())
+        poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
+        time_stamps.append(time.perf_counter()) #-- 4
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
         poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
         poles_col=poles_col.reshape((len(grains)*nsymop*2,n_extra_col))
-
-        time_stamps.append(time.perf_counter())
+        time_stamps.append(time.perf_counter()) #-- 5
 
     if iopt==1:
         XY=[]
@@ -2636,12 +2636,10 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             rs=np.sqrt(xs**2+ys**2)
             xs=-xs
             ys=-ys
-
             npoles=len(poles_projected)
             XY=np.zeros((npoles,2))
             WGT=np.zeros(npoles)
             COL_val=np.zeros((npoles,n_extra_col))
-
             XY[:,0]=xs
             XY[:,1]=ys
             WGT=poles_wgt[:]
@@ -2653,13 +2651,9 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         time_stamps=np.array(time_stamps)
         dt_all=time_stamps[-1]-time_stamps[0]
         dts=np.diff(time_stamps)
-        for i, dt in enumerate(dts):
-            print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
-
-        # print(f't2-t0: %5.1f'%(t2-t0))
-        # print(f't2-t1: %5.1f'%(t2-t1))
-        # print(f't1-t0: %5.1f'%(t1-t0))
-
+        if True:
+            for i, dt in enumerate(dts):
+                print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
         return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected
 
 
