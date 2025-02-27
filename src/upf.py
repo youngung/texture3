@@ -1128,9 +1128,33 @@ def projection(pole=None):
         X=0; Y=0
     else:
         X = a/(c-1)
-
         Y = b/(c-1)
     return X,Y
+
+def projection2(poles):
+    """
+    poles in (n x 3) arrays
+    """
+    mags=np.sqrt(poles[:,0]**2 + poles[:,1]**2 + poles[:,2]**2)
+    for i in range(3):
+        poles[:,i] = poles[:,i] / mags[:]
+    As,Bs,Cs=poles[:,0],poles[:,1],poles[:,2]
+
+    npoles=poles.shape[0]
+    Xs=np.zeros(npoles)
+    Ys=np.zeros(npoles)
+
+    flags=abs(Cs-1)<1e-10
+
+    nflags=np.logical_not(flags)
+
+    Xs[flags]=0
+    Ys[flags]=0
+    Xs[nflags]=As/(Cs-1.)
+    Ys[nflags]=Bs/(Cs-1.)
+
+    return Xs,Ys
+
 
 def invproj(x=None,y=None):
     """
@@ -2489,11 +2513,16 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
     nodes, nodes_col  if ncols>4
     """
     from . import sym
-
+    time_stamps=[]
+    time_stamps.append(time.perf_counter())
     #tiny = 1e-9
     tiny = 1e-1
     ## Set of equivalent vectors based on crystal symmetry
     pole=np.array(pole)
+
+
+    n_extra_col = grains.shape[-1]-4
+
     if proj=='pf':
         p0 = __equiv__(miller=pole,csym=csym,cdim=cdim,cang=cang)
         poles_ca=np.zeros((len(p0)*2,3))
@@ -2504,7 +2533,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
         poles_projected  = np.zeros((len(grains),len(poles_ca),3))
         poles_wgt        = np.zeros((len(grains),len(poles_ca)))
-        poles_col        = np.zeros((len(grains),len(poles_ca),grains.shape[-1]-4))
+        poles_col        = np.zeros((len(grains),len(poles_ca),n_extra_col))
 
         for i, gr in enumerate(grains):
             phi1,phi,phi2,wgt = gr[:4]
@@ -2522,7 +2551,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
 
         poles_projected  = poles_projected.reshape( (len(grains)*len(poles_ca),3))
         poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
-        poles_col = poles_col.reshape((len(grains)*len(poles_ca),grains.shape[-1]-4))
+        poles_col = poles_col.reshape((len(grains)*len(poles_ca),n_extra_col))
     elif proj=='ipf':
         ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
 
@@ -2539,7 +2568,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         # empty np arrays
         poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
         poles_wgt        = np.zeros((len(grains),nsymop*2))
-        poles_col        = np.zeros((len(grains),nsymop*2,grains.shape[-1]-4))
+        poles_col        = np.zeros((len(grains),nsymop*2,n_extra_col))
         for i, gr in enumerate(grains):
             phi1,phi,phi2,wgt=gr[:4]
             amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
@@ -2551,27 +2580,58 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
                 poles_col[i,j*2+1,:]=gr[4:]
             poles_wgt[i,:] = wgt
 
+
         #poles_projected[:,nsymop:2*nsymop,:]=-poles_projected[:,0:nsymop,:]
         #poles_col[:,nsymop:2*nsymop]=poles_col[:,0:nsymop]
         #poles_wgt[:,nsymop:2*nsymop]=poles_wgt[:,0:nsymop]
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
         poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
-        poles_col=poles_col.reshape((len(grains)*nsymop*2,grains.shape[-1]-4))
+        poles_col=poles_col.reshape((len(grains)*nsymop*2,n_extra_col))
 
+        time_stamps.append(time.perf_counter())
 
     if iopt==1:
         XY=[]
         WGT=[]
         COL_val=[]
-        for ip, pole in enumerate(poles_projected):
-            ## Convert each 3D pole to (x,y) coordinates
-            x,y=projection(pole)
-            if x**2+y**2<=1+tiny or True: ## If within the circle
-                y=-y; x=-x
-                XY.append([x,y])
-                WGT.append(poles_wgt[ip])
-                COL_val.append(poles_col[ip,:])
+        if False:
+            for ip, pole in enumerate(poles_projected):
+                ## Convert each 3D pole to (x,y) coordinates
+                x,y=projection(pole)
+                if x**2+y**2<=1+tiny or True: ## If within the circle
+                    y=-y; x=-x
+                    XY.append([x,y])
+                    WGT.append(poles_wgt[ip])
+                    COL_val.append(poles_col[ip,:])
+        else:
+            xs,ys=projection2(poles_projected)
+            rs=np.sqrt(xs**2+ys**2)
+            xs=-xs
+            ys=-ys
+
+            npoles=len(poles_projected)
+            XY=np.zeros((npoles,2))
+            WGT=np.zeros(npoles)
+            COL_val=np.zeros((npoles,n_extra_col))
+
+            XY[:,0]=xs
+            XY[:,1]=ys
+            WGT=poles_wgt[:]
+            COL_val=poles_col[:,:]
+            #COL_val.append(poles_col[ip,:])
+
+        time_stamps.append(time.perf_counter())
+
+        time_stamps=np.array(time_stamps)
+        dt_all=time_stamps[-1]-time_stamps[0]
+        dts=np.diff(time_stamps)
+        for i, dt in enumerate(dts):
+            print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} \%')
+
+        # print(f't2-t0: %5.1f'%(t2-t0))
+        # print(f't2-t1: %5.1f'%(t2-t1))
+        # print(f't1-t0: %5.1f'%(t1-t0))
 
         return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected
 
@@ -3003,6 +3063,7 @@ def proj(a):
     coords=np.zeros((nvec,2))
     for i, v in enumerate(vs):
         coords[i,:]=projection(v)
+    #coords=projection2(vs)
     if len(a.shape)>1: return coords
     elif len(a.shape)==1: return coords[0]
 
