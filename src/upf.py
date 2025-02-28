@@ -745,22 +745,6 @@ def calc_vref_and_rot(a,b,csym,cdim,cang,nang=100):
         rots[i,:,:]=vector_ang(vref,np.rad2deg(th))
     return aca, bca, thf, vref, rots
 
-# def get_ipf_boundary(a,b,c,nres,csym,cdim,cang):
-#     pairs=[[a,b],[b,c],[c,a]]
-#     coords=np.zeros((2,(nres-1)*3+1))
-
-#     for i, pair in enumerate(pairs[:3]):
-#         aca,bca,thf,vref,rots=calc_vref_and_rot(*pair,csym,cdim,cang,nres)
-#         varc=calc_arc(aca,rots)
-#         xy=np.zeros((len(varc),2))
-#         for j, point in enumerate(varc):
-#             xy[j,:]=projection(point)
-#         i0=i*(nres-1)
-#         i1=i0+nres-1
-#         coords[:,i0:i1]=xy[0:-1,:].T
-#     coords[:,-1]=coords[:,0]
-#     return coords
-
 def calc_arc(aca,rots):
     """
     Arguments
@@ -2027,7 +2011,7 @@ class polefigure:
         triangle=None
         if proj=='ipf':
             ## stereographic triangle boundary
-            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+            triangle,a,b,c,atilde,btilde,ctilde=get_ipf_boundary(fnsx=self.fnsx,nres=30)
 
         #----------------------------------------------------
         # contour (line, contour, fill) or dots (dot, dotm)
@@ -2125,7 +2109,7 @@ class polefigure:
         mask_invpf_tri=None
         if proj=='ipf':
             ## stereographic triangle boundary
-            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+            triangle,a,b,c,atilde,btilde,ctilde=get_ipf_boundary(fnsx=self.fnsx,nres=30)
             # if mode in ['line','contour','fill']:
             ## Generate masks to hide contours outside of the triangle
             if mode in ['line','contour','fill']:
@@ -2521,7 +2505,6 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
     ## Set of equivalent vectors based on crystal symmetry
     pole=np.array(pole)
 
-
     n_extra_col = grains.shape[-1]-4
 
     if proj=='pf':
@@ -2572,17 +2555,24 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
         poles_col = poles_col.reshape((len(grains)*len(poles_ca),n_extra_col))
     elif proj=='ipf':
-        ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
+        triangle,a,b,c,atilde,btilde,ctilde=get_ipf_boundary(nres=100,csym=csym,cdim=cdim,cang=cang) ## a, b, c are Miller indices not Cartesian
 
-        # Now, in this case, pole is referring to sample direction.
+        a_cart =sym.calc_cvec_kw(a,     csym=csym,cdim=cdim,cang=cang)
+        b_cart =sym.calc_cvec_kw(b,     csym=csym,cdim=cdim,cang=cang)
+        c_cart =sym.calc_cvec_kw(c,     csym=csym,cdim=cdim,cang=cang)
         if csym=='cubic':
-            H=sym.cubic()
-        elif csym=='hexag':
-            H=sym.hexag()
-        elif csym=='ortho':
-            H=sym.ortho()
+            at_cart=sym.calc_cvec_kw(atilde,csym=csym,cdim=cdim,cang=cang)
+            bt_cart=sym.calc_cvec_kw(btilde,csym=csym,cdim=cdim,cang=cang)
+            ct_cart=sym.calc_cvec_kw(ctilde,csym=csym,cdim=cdim,cang=cang)
+
+        ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
+        # Pole is referring to sample direction.
+        if csym=='cubic': H=sym.cubic()
+        elif csym=='hexag': H=sym.hexag()
+        elif csym=='ortho': H=sym.ortho()
         else:
             raise IOError('Not valid symmetry for pf')
+
         nsymop=H.shape[0]
         # empty np arrays
         poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
@@ -2591,26 +2581,28 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         amats=np.zeros((len(grains),3,3))
         poles_ca=np.zeros((len(grains),3))
         time_stamps.append(time.perf_counter()) #-- 1
-        if False:
-            for i, gr in enumerate(grains):
-                phi1,phi,phi2,wgt=gr[:4]
-                amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-                amats[i,:,:]=amat[:,:]
-        else:
-            amats=eulers(grains[:,0],grains[:,1],grains[:,2],iopt=2)
-            wgts=grains[:,3]
 
-        time_stamps.append(time.perf_counter()) #-- 2 (getting euler matrices individual takes longer time and is a bottleneck.)
-        poles_ca=np.tensordot(amats,pole,axes=1) ## last 1 dimension of amats, first 1 dimensioin of pole
+        # amats in <ngr,3,3> dimension
+        amats=eulers(grains[:,0],grains[:,1],grains[:,2],iopt=2)
+        time_stamps.append(time.perf_counter()) #-- 2
+        wgts=grains[:,3]
+        print(f'amats.shape:{amats.shape}')
+        print(f'pole.shape: {pole.shape}')
+        poles_ca=np.tensordot(amats,pole,axes=1) ## last 1 dimension of amats, first 1 dimension of pole
+
+        ## from this poles_ca, select only those in the fundamental triangle.
+        print(f'a_cart: {a_cart}')
+        print(f'b_cart: {b_cart}')
+        print(f'c_cart: {c_cart}')
+
         time_stamps.append(time.perf_counter()) #-- 3
         poles_projected[:,:nsymop,:]=np.tensordot(poles_ca,H,axes=([1,2]))
-        # print(f'2poles_projected.shape: {poles_projected.shape}')
+        poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
 
-        for j in range(len(H)*2):
+        for j in range(nsymop*2):
             poles_col[:,j,:]=grains[:,4:]
             poles_wgt[:,j] = wgts[:]
 
-        poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
         time_stamps.append(time.perf_counter()) #-- 4
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
@@ -3095,7 +3087,7 @@ def proj(a):
     elif len(a.shape)==1: return coords[0]
 
 
-def get_ipf_boundary(nres=5,fnsx=None):
+def get_ipf_boundary(nres=5,fnsx=None,**kwargs):
     """
     Given a, b, and c poles, calculate the fundamental triangle
     in the sphere in which the inverse pole figure contours are
@@ -3111,6 +3103,7 @@ def get_ipf_boundary(nres=5,fnsx=None):
           of (a,b), (b,c), and (c,a) pairs makes.
     fnsx: Name of single crystal file used in VPSC or dEVPSC code
         from which the crystallographic information is obtained.
+    **kwargs
 
     Returns
     -------
@@ -3118,13 +3111,24 @@ def get_ipf_boundary(nres=5,fnsx=None):
     a, b, c : Miller-indexed poles which consist the fundamental triangle.
     """
     from . import sym
-    csym, _cdim_, _cang_ = sym.read_fnsx(fnsx)
+    if len(kwargs.keys())==0:
+        csym, _cdim_, _cang_ = sym.read_fnsx(fnsx)
+    else:
+        csym=kwargs['csym']
 
+    atilde=None
+    btilde=None
+    ctilde=None
     # ## determine the three poles that define the fundamental zones.
     if csym=='cubic':
+        ## miller indicies
         a=[0,0,1]
         b=[1,0,1]
         c=[1,1,1]
+        ## indices of three other reference poles
+        atilde=[-1,0,1]
+        btilde=[1,-1,0]
+        ctilde=[0,1,0]
     elif csym=='hexag':
         a=[0,0,0,2]
         b=[1,0,-1,0]
@@ -3142,14 +3146,14 @@ def get_ipf_boundary(nres=5,fnsx=None):
     coords=np.zeros((2,(nres-1)*3+1))
 
     for i, pair in enumerate(pairs[:3]):
-        aca,bca,thf,vref,rots=sym.calc_vref_and_rot(*pair,fnsx,nres)
+        aca,bca,thf,vref,rots=sym.calc_vref_and_rot(*pair,fnsx,nres,**kwargs)
         varc=calc_arc(aca,rots)
         xy=proj(varc)
         i0=i*(nres-1)
         i1=i0+nres-1
         coords[:,i0:i1]=xy[0:-1,:].T
     coords[:,-1]=coords[:,0]
-    return coords, a, b, c
+    return coords, a, b, c, atilde, btilde, ctilde
 
 
 def gen_mask_contour(boundary,x,y,shape):

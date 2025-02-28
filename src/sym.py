@@ -469,9 +469,14 @@ def cv(miller, icsym=None, cdim=None, cang=None):
     s[1] = ( pole[1] - cvect[0,1]*s[0] - cvect[2,1]*s[2] ) / cvect[1,1]
 
     norm = sqrt(s[0]**2 + s[1]**2 + s[2]**2)
-    for i in range(3):
-        s[i] = s[i]/norm
-        if abs(s[i])<1e-6: s[i]=0.
+
+    if False:
+        for i in range(3):
+            s[i] = s[i]/norm
+            if abs(s[i])<1e-6: s[i]=0.
+    else:
+        s=s/norm
+        s[s<1e-6]=0.
     return s
 
 
@@ -518,9 +523,17 @@ def calc_cvec(miller,fnsx):
     _p_=cv(miller,icsym,cdim,cang)
     return _p_
 
+def calc_cvec_kw(miller,**kw):
+    csym=kw['csym']
+    cdim=kw['cdim']
+    cang=kw['cang']
+    icsym=get_icsym(csym)
+    return cv(miller,icsym,cdim,cang)
 
 
-def calc_vref_and_rot(a,b,fnsx,nang):
+
+
+def calc_vref_and_rot(a,b,fnsx,nang,**kwargs):
     """
     Given a miller-indexed crystal plane normal (a and b),
     calclulate the v ref and rotation matrices vref.
@@ -547,8 +560,12 @@ def calc_vref_and_rot(a,b,fnsx,nang):
             increments of the total rotation that connects aca to bca along the great circle.
     """
     from . import bcc_rolling_fiber
-    aca=-calc_cvec(miller=a,fnsx=fnsx)
-    bca=-calc_cvec(miller=b,fnsx=fnsx)
+    if len(kwargs.keys())==0:
+        aca=-calc_cvec(miller=a,fnsx=fnsx)
+        bca=-calc_cvec(miller=b,fnsx=fnsx)
+    else:
+        aca=-calc_cvec_kw(miller=a,**kwargs)
+        bca=-calc_cvec_kw(miller=b,**kwargs)
     vref=np.cross(aca,bca)
 
     ##
