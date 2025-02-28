@@ -2506,6 +2506,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
     pole=np.array(pole)
 
     n_extra_col = grains.shape[-1]-4
+    ngrs=len(grains)
 
     if proj=='pf':
         p0 = __equiv__(miller=pole,csym=csym,cdim=cdim,cang=cang)
@@ -2545,15 +2546,15 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         ## due to the crystal symmetry
         for i, gr in enumerate(grains):
             amat=amats[i,:,:]
-            for j, pole_ca in enumerate(poles_ca):
+            for j, pole_ca in enumerate(poles_ca):## amat[i,j] x pole_ca[j]
                 poles_projected[i,j,:] = np.dot(amat,pole_ca)
                 poles_col[i,j,:]  = gr[4:] ## can be void for "TEX_PHx.OUT"
-
             poles_wgt[i,:]  = wgts[i]
 
         poles_projected  = poles_projected.reshape( (len(grains)*len(poles_ca),3))
         poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
         poles_col = poles_col.reshape((len(grains)*len(poles_ca),n_extra_col))
+
     elif proj=='ipf':
         triangle,a,b,c,atilde,btilde,ctilde=get_ipf_boundary(nres=100,csym=csym,cdim=cdim,cang=cang) ## a, b, c are Miller indices not Cartesian
 
@@ -2561,9 +2562,15 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         b_cart =sym.calc_cvec_kw(b,     csym=csym,cdim=cdim,cang=cang)
         c_cart =sym.calc_cvec_kw(c,     csym=csym,cdim=cdim,cang=cang)
         if csym=='cubic':
-            at_cart=sym.calc_cvec_kw(atilde,csym=csym,cdim=cdim,cang=cang)
-            bt_cart=sym.calc_cvec_kw(btilde,csym=csym,cdim=cdim,cang=cang)
-            ct_cart=sym.calc_cvec_kw(ctilde,csym=csym,cdim=cdim,cang=cang)
+            atilde=np.array(atilde)
+            btilde=np.array(btilde)
+            ctilde=np.array(ctilde)
+            at_cart=atilde/np.sqrt((atilde**2).sum())
+            bt_cart=btilde/np.sqrt((btilde**2).sum())
+            ct_cart=ctilde/np.sqrt((ctilde**2).sum())
+            #at_cart=sym.calc_cvec_kw(atilde,csym=csym,cdim=cdim,cang=cang)
+            #bt_cart=sym.calc_cvec_kw(btilde,csym=csym,cdim=cdim,cang=cang)
+            #ct_cart=sym.calc_cvec_kw(ctilde,csym=csym,cdim=cdim,cang=cang)
 
         ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
         # Pole is referring to sample direction.
@@ -2573,11 +2580,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         else:
             raise IOError('Not valid symmetry for pf')
 
-        nsymop=H.shape[0]
-        # empty np arrays
-        poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
-        poles_wgt        = np.zeros((len(grains),nsymop*2))
-        poles_col        = np.zeros((len(grains),nsymop*2,n_extra_col))
+
         amats=np.zeros((len(grains),3,3))
         poles_ca=np.zeros((len(grains),3))
         time_stamps.append(time.perf_counter()) #-- 1
@@ -2594,9 +2597,22 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         print(f'a_cart: {a_cart}')
         print(f'b_cart: {b_cart}')
         print(f'c_cart: {c_cart}')
+        print(f'at_cart: {at_cart}')
+        print(f'bt_cart: {bt_cart}')
+        print(f'ct_cart: {ct_cart}')
+        print(f'atilde: {atilde}')
+        print(f'btilde: {btilde}')
+        print(f'ctilde: {ctilde}')
+
 
         time_stamps.append(time.perf_counter()) #-- 3
-        poles_projected[:,:nsymop,:]=np.tensordot(poles_ca,H,axes=([1,2]))
+
+        nsymop=H.shape[0]
+        # empty np arrays
+        poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
+        poles_wgt        = np.zeros((len(grains),nsymop*2))
+        poles_col        = np.zeros((len(grains),nsymop*2,n_extra_col))
+        poles_projected[:,:nsymop,:]=np.tensordot(poles_ca,H[:nsymop,:,:],axes=([1,2]))
         poles_projected[:,nsymop:nsymop*2,:]=-poles_projected[:,0:nsymop,  :]
 
         for j in range(nsymop*2):
@@ -2604,14 +2620,41 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             poles_wgt[:,j] = wgts[:]
 
         time_stamps.append(time.perf_counter()) #-- 4
+
+        if True:
+            print(f'ngrs: {ngrs}')
+            print(f'poles_projected.shape:{poles_projected.shape}')
+            abc_vectors=np.zeros((3,3))
+            abc_vectors[0,:]=at_cart
+            abc_vectors[1,:]=bt_cart
+            abc_vectors[2,:]=ct_cart
+            for ig in range(ngrs):
+                ths=np.zeros((nsymop*2,3))
+                k=0
+                for ip, pole in enumerate(poles_projected[ig,:,:]):
+                    for i in range(3):
+                        ths[ip,i]=np.dot(pole,abc_vectors[i,:])
+                    ths[ip,:]=np.arccos(ths[ip,:])
+
+                    if (ths[ip,:]<=np.deg2rad(90)).all():
+                        k=k+1
+                        if k!=1:
+                            print(f'Inside a triangle for {ig}, k: {k}')
+                            print(f'angles: {np.rad2deg(ths[ip,:])}')
+                            raise IOError('k being larger than 1?')
+                if k==0:
+                    raise IOError('k is not being one!!')
+
+
         ## reshaping
         poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
         poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
         poles_col=poles_col.reshape((len(grains)*nsymop*2,n_extra_col))
+
+
         time_stamps.append(time.perf_counter()) #-- 5
 
     if iopt==1:
-
         if False:
             XY=[]
             WGT=[]
