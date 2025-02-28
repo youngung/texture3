@@ -2628,28 +2628,37 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             abc_vectors[0,:]=at_cart
             abc_vectors[1,:]=bt_cart
             abc_vectors[2,:]=ct_cart
+            ths=np.zeros((ngrs,nsymop*2,3))
+            within=np.empty((ngrs,nsymop*2),dtype='bool')
+            within[::]=False
             for ig in range(ngrs):
-                ths=np.zeros((nsymop*2,3))
                 k=0
                 for ip, pole in enumerate(poles_projected[ig,:,:]):
-                    for i in range(3):
-                        ths[ip,i]=np.dot(pole,abc_vectors[i,:])
-                    ths[ip,:]=np.arccos(ths[ip,:])
-
-                    if (ths[ip,:]<=np.deg2rad(90)).all():
+                    for j in range(3):
+                        # ths[ig,ip,j]=np.dot(pole,abc_vectors[j,:])
+                        for i in range(3):
+                            ths[ig,ip,j]=ths[ig,ip,j]+pole[i]*abc_vectors[j,i]
+                    ths[ig,ip,:]=np.arccos(ths[ig,ip,:])
+                    if (ths[ig,ip,:]<=np.deg2rad(90)).all():
+                        within[ig,ip]=True
                         k=k+1
                         if k!=1:
                             print(f'Inside a triangle for {ig}, k: {k}')
-                            print(f'angles: {np.rad2deg(ths[ip,:])}')
+                            print(f'angles: {np.rad2deg(ths[ig,ip,:])}')
                             raise IOError('k being larger than 1?')
                 if k==0:
                     raise IOError('k is not being one!!')
 
-
-        ## reshaping
-        poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
-        poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
-        poles_col=poles_col.reshape((len(grains)*nsymop*2,n_extra_col))
+            print(f'within.shape: {within.shape}')
+            poles_projected=poles_projected[within]
+            print(f'poles_projected.shape: {poles_projected.shape}')
+            poles_wgt=poles_wgt[within]
+            poles_col=poles_col[within]
+        else:
+            ## reshaping
+            poles_projected=poles_projected.reshape( (len(grains)*nsymop*2),3)
+            poles_wgt=poles_wgt.reshape((len(grains)*nsymop*2))
+            poles_col=poles_col.reshape((len(grains)*nsymop*2,n_extra_col))
 
 
         time_stamps.append(time.perf_counter()) #-- 5
