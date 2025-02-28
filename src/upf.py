@@ -2604,7 +2604,6 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         print(f'btilde: {btilde}')
         print(f'ctilde: {ctilde}')
 
-
         time_stamps.append(time.perf_counter()) #-- 3
 
         nsymop=H.shape[0]
@@ -2618,9 +2617,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         for j in range(nsymop*2):
             poles_col[:,j,:]=grains[:,4:]
             poles_wgt[:,j] = wgts[:]
-
         time_stamps.append(time.perf_counter()) #-- 4
-
         if True:
             print(f'ngrs: {ngrs}')
             print(f'poles_projected.shape:{poles_projected.shape}')
@@ -2628,6 +2625,7 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             abc_vectors[0,:]=at_cart
             abc_vectors[1,:]=bt_cart
             abc_vectors[2,:]=ct_cart
+            abc_vectors[:,2]=abc_vectors[:,2]*-1
             ths=np.zeros((ngrs,nsymop*2,3))
             within=np.empty((ngrs,nsymop*2),dtype='bool')
             within[::]=False
@@ -2635,7 +2633,6 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
                 k=0
                 for ip, pole in enumerate(poles_projected[ig,:,:]):
                     for j in range(3):
-                        # ths[ig,ip,j]=np.dot(pole,abc_vectors[j,:])
                         for i in range(3):
                             ths[ig,ip,j]=ths[ig,ip,j]+pole[i]*abc_vectors[j,i]
                     ths[ig,ip,:]=np.arccos(ths[ig,ip,:])
