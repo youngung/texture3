@@ -2619,10 +2619,11 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         time_stamps.append(time.perf_counter()) #-- 5
 
     if iopt==1:
-        XY=[]
-        WGT=[]
-        COL_val=[]
+
         if False:
+            XY=[]
+            WGT=[]
+            COL_val=[]
             for ip, pole in enumerate(poles_projected):
                 ## Convert each 3D pole to (x,y) coordinates
                 x,y=projection(pole)
@@ -2631,10 +2632,12 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
                     XY.append([x,y])
                     WGT.append(poles_wgt[ip])
                     COL_val.append(poles_col[ip,:])
+            XY=np.array(XY)
+            WGT=np.array(WGT)
+            COL_val=np.array(COL_val)
         else:
-            # print(f'poles_projected: {poles_projected}')
             xs,ys=projection2(poles_projected)
-            rs=np.sqrt(xs**2+ys**2)
+            # rs=np.sqrt(xs**2+ys**2)
             xs=-xs
             ys=-ys
             npoles=len(poles_projected)
@@ -2645,17 +2648,19 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             XY[:,1]=ys
             WGT=poles_wgt[:]
             COL_val=poles_col[:,:]
-            #COL_val.append(poles_col[ip,:])
 
         time_stamps.append(time.perf_counter())
 
         time_stamps=np.array(time_stamps)
         dt_all=time_stamps[-1]-time_stamps[0]
         dts=np.diff(time_stamps)
+
         if False:
             for i, dt in enumerate(dts):
                 print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
-        return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected
+
+        #return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected, nsymop*2
+        return XY, WGT, COL_val, poles_projected, nsymop*2
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
