@@ -2631,10 +2631,15 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
             within[::]=False
             for ig in range(ngrs):
                 k=0
+
                 for ip, pole in enumerate(poles_projected[ig,:,:]):
                     for j in range(3):
                         for i in range(3):
                             ths[ig,ip,j]=ths[ig,ip,j]+pole[i]*abc_vectors[j,i]
+
+                for ip, pole in enumerate(poles_projected[ig,:,:]):
+                    for j in range(3):
+                        for i in range(3):
                     ths[ig,ip,:]=np.arccos(ths[ig,ip,:])
                     if (ths[ig,ip,:]<=np.deg2rad(90)).all():
                         within[ig,ip]=True
