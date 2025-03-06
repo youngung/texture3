@@ -154,7 +154,7 @@ def eulers(phs=None, ths=None, tms=None, amats=None, echo=False,iopt=None):
         """ Convert the angle into Radian"""
         amats=np.zeros((len(phs),3,3))
 
-        print(f'amats.shape: {amats.shape}')
+        # print(f'amats.shape: {amats.shape}')
 
         phs = phs * np.pi / 180.
         ths = ths * np.pi / 180.
