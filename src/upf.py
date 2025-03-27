@@ -2104,6 +2104,14 @@ class polefigure:
                     # use this tags to trim.
                     wgt=wgt[tags]
                     col_val=col_val[tags,:]
+                elif proj=='pf':
+                    x=XY[:,0]
+                    y=XY[:,1]
+                    r=np.sqrt(x**2+y**2)
+                    tags=r<1
+                    wgt=wgt[tags]
+                    col_val=col_val[tags,:]
+                    XY=XY[tags,:]
 
                 pf_dots.append(XY)
                 pf_dots_wgt.append(wgt)
@@ -2660,7 +2668,10 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
                 print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
 
         #return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected, nsymop*2
-        return XY, WGT, COL_val, poles_projected, nsymop*2
+        try:
+            return XY, WGT, COL_val, poles_projected, nsymop*2
+        except:
+            return XY, WGT, COL_val, poles_projected
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
