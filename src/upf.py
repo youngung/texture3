@@ -2108,7 +2108,8 @@ class polefigure:
                     x=XY[:,0]
                     y=XY[:,1]
                     r=np.sqrt(x**2+y**2)
-                    tags=r<1
+                    tiny = 1e-9
+                    tags=r<=1#+tiny
                     wgt=wgt[tags]
                     col_val=col_val[tags,:]
                     XY=XY[tags,:]
@@ -2236,6 +2237,10 @@ class polefigure:
                     kwargs.update(c=pf_dots_wgt[i])
 
                 func(x,y,**kwargs)
+                if 'cs' in kwargs.keys():
+                    print(f'x.shape: {x.shape}')
+                    print(f'y.shape: {y.shape}')
+                    print(f"kwargs['cs'].shape: {kwargs['cs'].shape}")
 
                 kws=dict(ax=axs[i],proj=proj,
                          triangle=triangle,cnt=None,
@@ -2252,15 +2257,18 @@ class polefigure:
         #--------------------------------------------------#
         ## returning some objects.
         if self.gr.shape[-1]>4 and proj=='pf':
-            return fig, np.array(N), np.array(Ncol), \
-                R*np.cos(PHI),  R*np.sin(PHI)
+            try:
+                return fig, np.array(N), np.array(Ncol), \
+                    R*np.cos(PHI),  R*np.sin(PHI)
+            except:
+                try:
+                    return fig
+                except:
+                    pass
         elif self.gr.shape[-1]==4:
             try: return fig
             except: pass
         #--------------------------------------------------#
-
-
-
 
 
     def calcMXN(self,nArray=None,mx=None,mn=None,mode='line',ilev=0):
@@ -2528,9 +2536,19 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
     tiny = 1e-1
     ## Set of equivalent vectors based on crystal symmetry
     pole=np.array(pole)
-
-
     n_extra_col = grains.shape[-1]-4
+
+    if csym=='cubic':
+        H=sym.cubic()
+    elif csym=='hexag':
+        H=sym.hexag()
+    elif csym=='ortho':
+        H=sym.ortho()
+    else:
+        raise IOError('Not valid symmetry for pf')
+    nsymop=H.shape[0]
+
+
 
     if proj=='pf':
         p0 = __equiv__(miller=pole,csym=csym,cdim=cdim,cang=cang)
@@ -2546,25 +2564,25 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         amats=np.zeros((len(grains),3,3))
         wgts=np.zeros(len(grains))
 
-        if False:
-            for i, gr in enumerate(grains):
-                phi1,phi,phi2,wgt = gr[:4]
-                wgts[i]=wgt
-                amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-                amat=amat.T ## sa<-ca
-                if (transform==np.identity(3)).all():pass
-                else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
-                amats[i,:,:]=amat[:,:]
-        else:
-            phi1s=grains[:,0]
-            phis=grains[:,1]
-            phi2s=grains[:,2]
-            wgts=grains[:,3]
+        # if False:
+        #     for i, gr in enumerate(grains):
+        #         phi1,phi,phi2,wgt = gr[:4]
+        #         wgts[i]=wgt
+        #         amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+        #         amat=amat.T ## sa<-ca
+        #         if (transform==np.identity(3)).all():pass
+        #         else:amat=np.dot(transform,amat) # sa(new) <- sa(old) <- ca
+        #         amats[i,:,:]=amat[:,:]
+        #else:
+        phi1s=grains[:,0]
+        phis=grains[:,1]
+        phi2s=grains[:,2]
+        wgts=grains[:,3]
 
-            amats=eulers(phi1s,phis,phi2s,iopt=2)
-            ## transform[3,3] amats[g,3,3]
-            if (transform==np.identity(3)).all():pass
-            else:amats=np.tensordot(amats,transform,axes=([1,1]))
+        amats=eulers(phi1s,phis,phi2s,iopt=2)
+        ## transform[3,3] amats[g,3,3]
+        if (transform==np.identity(3)).all():pass
+        else:amats=np.tensordot(amats,transform,axes=([1,1]))
 
         ## multiple crystal poles may exist for each given (hkl)
         ## due to the crystal symmetry
@@ -2580,18 +2598,8 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         poles_wgt = poles_wgt.reshape((len(grains)*len(poles_ca)))
         poles_col = poles_col.reshape((len(grains)*len(poles_ca),n_extra_col))
     elif proj=='ipf':
-        ## poles_projected can be either crystal poles (PF) or sample poles (IPF)
-
+        # poles_projected can be either crystal poles (PF) or sample poles (IPF)
         # Now, in this case, pole is referring to sample direction.
-        if csym=='cubic':
-            H=sym.cubic()
-        elif csym=='hexag':
-            H=sym.hexag()
-        elif csym=='ortho':
-            H=sym.ortho()
-        else:
-            raise IOError('Not valid symmetry for pf')
-        nsymop=H.shape[0]
         # empty np arrays
         poles_projected  = np.zeros((len(grains),nsymop*2,3)) #forward & backward
         poles_wgt        = np.zeros((len(grains),nsymop*2))
@@ -2627,35 +2635,34 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         time_stamps.append(time.perf_counter()) #-- 5
 
     if iopt==1:
-
-        if False:
-            XY=[]
-            WGT=[]
-            COL_val=[]
-            for ip, pole in enumerate(poles_projected):
-                ## Convert each 3D pole to (x,y) coordinates
-                x,y=projection(pole)
-                if x**2+y**2<=1+tiny or True: ## If within the circle
-                    y=-y; x=-x
-                    XY.append([x,y])
-                    WGT.append(poles_wgt[ip])
-                    COL_val.append(poles_col[ip,:])
-            XY=np.array(XY)
-            WGT=np.array(WGT)
-            COL_val=np.array(COL_val)
-        else:
-            xs,ys=projection2(poles_projected)
-            # rs=np.sqrt(xs**2+ys**2)
-            xs=-xs
-            ys=-ys
-            npoles=len(poles_projected)
-            XY=np.zeros((npoles,2))
-            WGT=np.zeros(npoles)
-            COL_val=np.zeros((npoles,n_extra_col))
-            XY[:,0]=xs
-            XY[:,1]=ys
-            WGT=poles_wgt[:]
-            COL_val=poles_col[:,:]
+        # if False:
+        #     XY=[]
+        #     WGT=[]
+        #     COL_val=[]
+        #     for ip, pole in enumerate(poles_projected):
+        #         ## Convert each 3D pole to (x,y) coordinates
+        #         x,y=projection(pole)
+        #         if x**2+y**2<=1+tiny or True: ## If within the circle
+        #             y=-y; x=-x
+        #             XY.append([x,y])
+        #             WGT.append(poles_wgt[ip])
+        #             COL_val.append(poles_col[ip,:])
+        #     XY=np.array(XY)
+        #     WGT=np.array(WGT)
+        #     COL_val=np.array(COL_val)
+        # else:
+        xs,ys=projection2(poles_projected)
+        # rs=np.sqrt(xs**2+ys**2)
+        xs=-xs
+        ys=-ys
+        npoles=len(poles_projected)
+        XY=np.zeros((npoles,2))
+        WGT=np.zeros(npoles)
+        COL_val=np.zeros((npoles,n_extra_col))
+        XY[:,0]=xs
+        XY[:,1]=ys
+        WGT=poles_wgt[:]
+        COL_val=poles_col[:,:]
 
         time_stamps.append(time.perf_counter())
 
@@ -2663,15 +2670,16 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         dt_all=time_stamps[-1]-time_stamps[0]
         dts=np.diff(time_stamps)
 
-        if False:
-            for i, dt in enumerate(dts):
-                print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
+        # if False:
+        #     for i, dt in enumerate(dts):
+        #         print(f'{i+1}-th dt: {dt}, frac: {dt/dt_all*100} %')
 
         #return np.array(XY), np.array(WGT), np.array(COL_val), poles_projected, nsymop*2
-        try:
-            return XY, WGT, COL_val, poles_projected, nsymop*2
-        except:
-            return XY, WGT, COL_val, poles_projected
+        # try:
+        return XY,WGT,COL_val,poles_projected,nsymop*2
+
+        # except:
+        #     return XY, WGT, COL_val, poles_projected
 
 
     ## Full Sphere (-pi, +pi) and (0, pi)
