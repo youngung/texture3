@@ -974,8 +974,9 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     ## place colorbar of contours with its intensities
     if iopt==1: pass
     elif iopt==0 and mode in ['fill','line']:
+        dy=0.3
         if proj=='pf':
-            x=[1.35,1.39]
+            x=[1.6,1.7]
         elif proj=='ipf':
             x0=triangle[0].max()+0.02
             x1=x0+0.07
@@ -983,25 +984,29 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
 
         for i in range(nlev):
             cc = tcolors[i][0][0:3]
-
             if proj=='pf':
-                y=[1. - i * 0.25, 1. - i * 0.25]
+                y=[1.1 - i * dy, 1.1 - i * dy]
             elif proj=='ipf':
                 y0=triangle[1].max()+0.2
                 scale=y0/8
                 y=[y0-i*scale, y0-i*scale]
 
+
             if not(iskip_last) and i==nlev-1 and mode=='line' and False:
                 ax.plot((x[0]+x[1])/2.,(y[0]+y[1])/2.,
-                        '+',mew=2.,color=cc)
+                        '+',mew=2.,color=cc,transform=ax.transAxes)
             else:
-                ax.plot(x,y,color=cc)
+                ##
+                print('x:',x)
+                print('y:',y)
+                ax.plot(x,y,color=cc,linewidth=3)
+
             ## level text
             if clev[i]<10: s='  %4.2f'%clev[i]
             else:          s='%5.2f'%clev[i]
-            ax.text(x=x[0]+0.02,
-                    y=y[0],
-                    s=s,fontsize=4.0*fact,va='center')
+            ax.text(x=x[1],y=y[0],
+                    s=s,fontsize=4.0*fact,
+                    va='center',ha='left')
 
     #--------------------------------------------
     ## Place the Miller indices at the three
@@ -1037,7 +1042,7 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
         ax.set_ylim(min(triangle[1])-0.05,max(triangle[1])+0.05)
 
     #--------------------------------------------
-    ## Add small block dots on the background
+    ## Add small black dots on the background
     ## in case contouring is done with lines
     ## but not filled.
     if ires and mode=='line' and ilev==1:
@@ -1089,14 +1094,14 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     if proj=='pf':
         _x_,_y_ = __circle__()
         ax.plot(_x_,_y_,'k-')
-        ax.set_xlim(-1.1,1.4)
+        ax.set_xlim(-1.1,1.7)
         ax.set_ylim(-1.1,1.4)
 
         ## axis label/    ## Ticks
-        ax.text(1.15,0. ,ix,va='center',ha='center')
-        ax.text(0. ,1.15,iy,va='center',ha='center')
-        ax.plot([0.0,0.0], [0.97,1.00],'k-')
-        ax.plot([0.97,1.00],[0.0,0.0],'k-')
+        ax.text(1.04,0. ,ix,va='center',ha='left',fontsize=8)
+        ax.text(0. ,1.04,iy,va='bottom',ha='center',fontsize=8)
+        ax.plot([0.0,0.0], [0.97,1.03],'k-')
+        ax.plot([0.97,1.03],[0.0,0.0],'k-')
 
     if proj=='ipf':
         ax.plot(*triangle,'-k',zorder=1e10)
@@ -1315,7 +1320,7 @@ def gen_fig(nrows=3,ncols=3,colsize=2.5,rowsize=2.,**kwargs):
 
 class polefigure:
     # decides if the given set is in the texture file form or array
-    def __init__(self, grains=None, filename=None, fnsx=None, csym=None,
+    def __init__(self, grains=None, filename=None, angfilename=None,fnsx=None, csym=None,
                  ngrain=100, cdim=None, cang=None,
                  ssym=False, epf=None,epf_mode=None):
         """
@@ -1352,7 +1357,7 @@ class polefigure:
         # and returns its grains to the global gr variable.        #
 
         if type(grains)==type(None) and type(filename)==type(None)\
-           and type(epf)==type(None):
+           and type(epf)==type(None) and type(angfilename)==type(None):
             print(" ****************************** ")
             print(" Since no argument is passed,   ")
             print(" 1000 random grains are created ")
@@ -1368,9 +1373,7 @@ class polefigure:
             with open(filename,'r') as fo:
                 lines_ori=fo.readlines()
                 lines=lines_ori[4:]
-
             ncol=len(lines[0].split())
-
             try:
                 ## attempt to find ngr from the 4th line (works with 'TEX_PHx.OUT' format)
                 # print(f'lines_ori[3]:, {lines_ori[3]}')
@@ -1382,6 +1385,25 @@ class polefigure:
             lines=lines[-1:-1-ngr:-1][::-1]
             for i, line in enumerate(lines):
                 self.gr[i,:]=np.fromiter(map(float,line.split()),float)
+
+        elif type(angfilename)!=type(None):
+            ## find the number of headlines
+            n=0
+            with open(angfilename,'r') as fo:
+                lines=fo.readlines()
+                for line in lines:
+                    if line.startswith('#'):
+                        n=n+1
+                    else:
+                        break
+            print('** No of skipped lines =',n)
+            dat_ori=np.loadtxt(angfilename,skiprows=n)
+            print('** Randomly choose {ngrain} lines from ang file')
+            self.gr=dat_ori[np.random.choice(dat_ori.shape[0],ngrain,replace=False),:]
+            self.gr=self.gr[:,:4].copy()
+            self.gr[:,3]=1./ngrain
+            self.gr[:,:3]=np.rad2deg(self.gr[:,:3])
+
         elif type(epf)!=type(None): # None is the default for epf
             """
             experimental pole figures..
@@ -1978,6 +2000,16 @@ class polefigure:
         fig: matplotlib.figure.Figure
         """
         import scipy
+        grs=self.gr.copy()
+
+        if abs(rot)>1e-5:
+            transform=euler(np.rad2deg(rot),0.,0.,echo=False)
+            amats=eulers(grs[:,0],grs[:,1],grs[:,2],echo=False,iopt=2)
+            amats=np.tensordot(amats,transform,axes=([2,1]))
+            phs,ths,tms=eulers(amats=amats,iopt=1,echo=False)
+            grs[:,0]=phs
+            grs[:,1]=ths
+            grs[:,2]=tms
 
         ## check mutually exclusive arguments (ifig and axs)
         if type(ifig)!=type(None) and type(axs)!=type(None):
@@ -1998,7 +2030,7 @@ class polefigure:
         miller=poles[::]
         if type(cdim)!=type(None): self.cdim=cdim
 
-        if self.gr.shape[-1]>4: Ncol=[] ## esgr format
+        if grs.shape[-1]>4: Ncol=[] ## esgr format
 
         ####################################################
         ## contoured or dotted (inverse) pole figures.
@@ -2041,9 +2073,9 @@ class polefigure:
                 rst=cells_pf(
                     0,proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
-                    cdim=self.cdim,grains=self.gr,
+                    cdim=self.cdim,grains=grs,
                     n_rim = n_rim,transform=transform)
-                if self.gr.shape[-1]>4: ## if extra columns exist
+                if grs.shape[-1]>4: ## if extra columns exist
                     N.append(rst[0])
                     Ncol.append(rst[1])
                 else:
@@ -2056,7 +2088,7 @@ class polefigure:
 
             #------------------------------------------------
             ## Get meshgrids
-            R,Phi,x,y=get_grid_from_angles(dth,dph,rot)
+            R,Phi,x,y=get_grid_from_angles(dth,dph,0.)
             x_ori=x[::]; y_ori=y[::]
 
             #------------------------------------------------
@@ -2094,7 +2126,7 @@ class polefigure:
                 rst=cells_pf(
                     1,proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
-                    cdim=self.cdim,grains=self.gr,
+                    cdim=self.cdim,grains=grs,
                     n_rim = n_rim,transform=transform)
                 XY,wgt,col_val=rst[0],rst[1],rst[2]
 
@@ -2256,7 +2288,7 @@ class polefigure:
 
         #--------------------------------------------------#
         ## returning some objects.
-        if self.gr.shape[-1]>4 and proj=='pf':
+        if grs.shape[-1]>4 and proj=='pf':
             try:
                 return fig, np.array(N), np.array(Ncol), \
                     R*np.cos(PHI),  R*np.sin(PHI)
@@ -2265,7 +2297,7 @@ class polefigure:
                     return fig
                 except:
                     pass
-        elif self.gr.shape[-1]==4:
+        elif grs.shape[-1]==4:
             try: return fig
             except: pass
         #--------------------------------------------------#
