@@ -2579,6 +2579,8 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         phi2s=grains[:,2]
         wgts=grains[:,3]
 
+        ## amats transforms from sa to ca
+        ## A^{ca<-sa}
         amats=eulers(phi1s,phis,phi2s,iopt=2)
         ## transform[3,3] amats[g,3,3]
         if (transform==np.identity(3)).all():pass

@@ -127,25 +127,34 @@ def eulers(phs=None, ths=None, tms=None, amats=None, echo=False,iopt=None):
         print('** Error: iopt should be given to eulers.')
         raise IOError('** Error')
 
-    if iopt==1 :
-        ths = np.arccos(amats[2,2])  #Radian
+    if iopt==1:
+        tms=np.zeros(amats.shape[0])
+        phs=np.zeros(amats.shape[0])
+        ths = np.arccos(amats[:,2,2])  #Radian
+
         tiny=1e-6
         flg=abs(amats[:,2,2]) > 1-tiny
-        tms[flg,:]=0.
-        phs[flg,:]=np.arctan2(amats[:,0,1],amats[:,0,0])
+
+        tms[flg]=0.
+        phs[flg]=np.arctan2(amats[flg,0,1],amats[flg,0,0])
+
         # if abs(a[2,2] > 0.99999):
         #     tm = 0.
         #     ph = np.arctan2(a[0,1],a[0,0]) #Radian
         #else:
-        sth = np.sin(ths)
-        tms = np.arctan2(a[:,0,2]/sth,a[:,1,2]/sth)
-        phs = np.arctan2(a[:,2,0]/sth,-a[:,2,1]/sth)
+        if np.logical_not(flg).any():
+            nflg=np.logical_not(flg)
+            ths[nflg]=np.arccos(amats[nflg,2,2])
+            sth = np.sin(ths[nflg])
+            tms[nflg] = np.arctan2(amats[nflg,0,2]/sth,amats[nflg,1,2]/sth)
+            phs[nflg] = np.arctan2(amats[nflg,2,0]/sth,-amats[nflg,2,1]/sth)
+
         ths = ths * 180./np.pi
         phs = phs * 180./np.pi
         tms = tms * 180./np.pi
         return [phs,ths,tms] #phi1, phi, phi2
 
-    elif (iopt == 2):
+    elif iopt==2:
         # angles = [phs,ths,tms]
         # if any(angles[i] == None for i in range(len(angles))):
         #     print('Angles must be give if iopt==2')
