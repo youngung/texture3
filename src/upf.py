@@ -997,8 +997,8 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
                         '+',mew=2.,color=cc,transform=ax.transAxes)
             else:
                 ##
-                print('x:',x)
-                print('y:',y)
+                # print('x:',x)
+                # print('y:',y)
                 ax.plot(x,y,color=cc,linewidth=3)
 
             ## level text
