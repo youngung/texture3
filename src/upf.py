@@ -2056,7 +2056,7 @@ class polefigure:
         triangle=None
         if proj=='ipf':
             ## stereographic triangle boundary
-            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=30)
+            triangle,a,b,c=get_ipf_boundary(fnsx=self.fnsx,nres=90)
 
         #----------------------------------------------------
         # contour (line, contour, fill) or dots (dot, dotm)
@@ -2150,6 +2150,7 @@ class polefigure:
             pf_dots=np.array(pf_dots,dtype='object')
             pf_dots_wgt=np.array(pf_dots_wgt,dtype='object')
             pf_dots_col=np.array(pf_dots_col,dtype='object')
+
 
             if mode=='dotm':
                 return pf_dots
