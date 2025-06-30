@@ -2119,7 +2119,6 @@ class polefigure:
             pf_dots_wgt=[]
             pf_dots_col=[]
             for i in range(len(poles)): # crystal or sample poles
-                print(f'poles[i]:: {poles[i]}')
                 rst=cells_pf(
                     1,proj=proj,pole=poles[i],dth=dth,dph=dph,
                     csym=self.csym,cang=self.cang,
