@@ -966,9 +966,17 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
     # --
     if mode in ['fill','line']:
         clev    = cnt._levels
-        tcolors = cnt.tcolors
-        if iskip_last: nlev = len(tcolors)-1
-        else:  nlev = len(tcolors)
+
+        if mode =='fill':
+            colors=cnt.get_facecolor()
+        elif mode=='line':
+            colors=cnt.get_edgecolor()
+
+
+        nlev=len(colors)
+
+        if iskip_last: nlev = nlev-1
+
 
     #--------------------------------------------
     ## place colorbar of contours with its intensities
@@ -983,7 +991,16 @@ def deco_pf(ax,proj,triangle,cnt=None,miller=[0,0,0],
             x=[x0,x1]
 
         for i in range(nlev):
-            cc = tcolors[i][0][0:3]
+            cc=colors[i][:3]
+            # # try:
+            # #     cc = tcolors[i][0][0:3]
+            # # except:
+            # try:
+            #     cc=cnt.get_facecolor()[i][:3]
+            # except:
+            #     cc=cnt.get_edgecolor()[i][:3]
+
+
             if proj=='pf':
                 y=[1.1 - i * dy, 1.1 - i * dy]
             elif proj=='ipf':

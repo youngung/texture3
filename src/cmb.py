@@ -138,11 +138,18 @@ def random(phi1=90, phi2=90, phi=90,
             cp2 = (2*rand()-1) * phi2  #phi2
             cp = (2*rand()-1)# -1~+1
         else:
+#<<<<<<< HEAD
             cp1=rand() * phi1
             cp2=rand() * phi2
             cp =rand() # 0-1
 
         cp = math.acos(cp) * phi/math.pi
+# =======
+#             cp1=rand()*phi1
+#             cp2=rand()*phi2
+#             cp =rand()
+#         cp = math.acos(cp) * 180./math.pi
+# >>>>>>> github/master
         # if phi==180:
         #     if randi(0,1)==0: cp = cp
         #     else: cp = 180 - cp
