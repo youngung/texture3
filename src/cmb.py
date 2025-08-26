@@ -133,10 +133,16 @@ def random(phi1=90, phi2=90, phi=90,
     print('phi1, phi, phi2', phi1, phi, phi2)
     gr = np.zeros((ngrain,4))
     for i in range(ngrain):
-        cp1 = (2*rand()-1) * phi1  #phi1
-        cp2 = (2*rand()-1) * phi2  #phi2
-        cp = (2*rand()-1)# -1~+1
-        cp = math.acos(cp) * 180./math.pi
+        if False:
+            cp1 = (2*rand()-1) * phi1  #phi1
+            cp2 = (2*rand()-1) * phi2  #phi2
+            cp = (2*rand()-1)# -1~+1
+        else:
+            cp1=rand() * phi1
+            cp2=rand() * phi2
+            cp =rand() # 0-1
+
+        cp = math.acos(cp) * phi/math.pi
         # if phi==180:
         #     if randi(0,1)==0: cp = cp
         #     else: cp = 180 - cp

@@ -30,7 +30,7 @@ def vector_ang(u, th):
 
    returns:
       r : Rotation matrix that rotates the coordinate system
-        of others by th (in degree) about the vector u.
+x        of others by th (in degree) about the vector u.
         --
         If the associated 3D space is 'right-handed', this rotation will be
         counter-clockwise for an observer placed so that the axis u goes
@@ -62,8 +62,8 @@ def polar2vect(delta, phi):
     return vector
 
 def rot_vectang(th,r):
-    """ 
-    Rotate the given rotation matrix r [ca<-sa] by a 
+    """
+    Rotate the given rotation matrix r [ca<-sa] by a
     random axis with th degree.
     """
     delta, phi = rot_axis() # random delt and phi
@@ -73,7 +73,7 @@ def rot_vectang(th,r):
     newr = np.dot(rot, r)
     return newr
 
-    
+
 def sample_mmm():
     """
     orthonormal sample symmetry operators
@@ -183,7 +183,7 @@ def main(hkl,uvw,w0,ngr=1,ifig=10):
     mypf.pf(mode='contourf',cmode='gray_r',ifig=ifig)
     #mypf.pf(mode='dot',cmode='gray_r',ifig=ifig)
     plt.tight_layout()
-    
+
     hkl = '%i%i%i'%(hkl[0],hkl[1],hkl[2])
     uvw = '%i%i%i'%(uvw[0],uvw[1],uvw[2])
     fn = 'hkl_%s_uvw_%s_th_%i_ngr_%i.txt'%(hkl,uvw,w0,ngr)
