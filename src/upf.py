@@ -1377,7 +1377,7 @@ class polefigure:
             print(" 1000 random grains are created ")
             print(" ****************************** \n")
             from .cmb import random
-            self.gr = random(phi1=360,phi2=360,phi=90,ngrain=1000,iplot=False)
+            self.gr = random(phi1=360,phi2=360,phi=90,ngrain=ngrain,iplot=False)
 
         self.epf = epf # global
 

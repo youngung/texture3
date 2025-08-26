@@ -143,7 +143,7 @@ def random(phi1=90, phi2=90, phi=90,
             cp2=rand() * phi2
             cp =rand() # 0-1
 
-        cp = math.acos(cp) * phi/math.pi
+        cp = math.acos(cp) * 180/math.pi
 # =======
 #             cp1=rand()*phi1
 #             cp2=rand()*phi2
