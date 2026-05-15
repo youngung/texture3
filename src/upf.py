@@ -1964,7 +1964,7 @@ class polefigure:
              The number of 'central' rims to be *averaged*.
              For better understandings, see the algorithm notebook
              located in ./ipynb/UPF_Algorithm.ipynb
-        <cdim>:  crystal dimension
+g        <cdim>:  crystal dimension
            For cubic, [1,1,1]
            For a particularly AZ31 sheet, it is [1,1,1.6235]
            Users should know what is the lattice dimension for the crystal
@@ -2004,7 +2004,12 @@ class polefigure:
         <levels>
            Default is None. One can define levels of the contours.
         <transform>
-           transformation matrix applied to the entire polycrystal aggregate.
+           transformation matrix applied to the entire polycrystal aggregate, which
+           maps from 'old' sample axes to 'new' sample axes. Therefore, for a grain
+           orientation that maps from sample to crystal axes, g_{ca<-sa},
+           the new crystal axes applied by a transform matrix is obtained via:
+            g_{new} = g_{old} . <transform>
+
         <ideco_lev> True or False
            switch to turn on or off the levels
         <ismooth>=1
@@ -2545,6 +2550,15 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
 
     Plots the cell's weight and returns the cell in array.
 
+    Euler angle convention.
+    The Euler angles (phi1,phi,phi2), provides transformation matrix that maps
+    from sample axes to crystal axes. AG matrix used in VPSC, is its transpose (or inverse),
+    mapping from crystal to sample axes.
+
+
+
+
+
     + Additional feature (2024-05-28)
     Some more updates that I'm trying to implement here is to visualize
     some other 'scalar' quantities that come along with the form of discrete orientation files.
@@ -2554,6 +2568,8 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
 
     + Additional feature (2024-06)
     I plan to use this module for both pole figures and inverse pole figures
+
+
 
     ---------
     Arguments
