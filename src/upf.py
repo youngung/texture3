@@ -2646,7 +2646,18 @@ def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,9
         amats=eulers(phi1s,phis,phi2s,iopt=2)
         ## transform[3,3] amats[g,3,3]
         if (transform==np.identity(3)).all():pass
-        else:amats=np.tensordot(amats,transform,axes=([1,1]))
+        else:
+            print(f'amats.shape: {amats.shape}')
+            # amats=np.tensordot(amats,transform,axes=([1,1]))
+            # amats=np.tensordot(transform,amats,axes=([1,1]))
+            amats=np.einsum('ij,kjl->kil',transform,amats)
+
+            # newmat=np.zeros((3,3))
+            # for i in range(3):
+            #     for j in range(3):
+            #         for k in range(3):
+            #             newmat[i,j]=newmat[i,j]+amats[i,k]*transform[k,j]
+
 
         ## multiple crystal poles may exist for each given (hkl)
         ## due to the crystal symmetry
