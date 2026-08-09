@@ -2496,7 +2496,7 @@ g        <cdim>:  crystal dimension
 
     def save(self,fnout):
         with open(fnout,'w') as fo:
-            fo.write(f'dum\n dum\n dum\n{self.ngr} B\n')
+            fo.write(f'dum\n dum\n dum\nB {self.ngr}\n')
             for i, gr in enumerate(self.gr):
                 fo.write(f'{gr[0]:e} {gr[1]:e} {gr[2]:e} {gr[3]:e}\n')
 
