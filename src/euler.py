@@ -107,22 +107,22 @@ def euler(ph=None, th=None, tm=None, a=None, echo=True):
 
 
 
-def eulers(phs=None, ths=None, tms=None, amats=None, echo=False,iopt=None):
+def eulers(phs=None, ths=None, tms=None,
+           amats=None, echo=False,iopt=None):
     """
     This module is to allow calculate Euler angles or transformation matrices
     multiple times without requiring going over loops. The procedure relies
     on NumPy ufunc
-    """
-    # if type(a).__name__=='NoneType':  a=np.resize(np.array(()),(3,3));iopt=2
-    # else:
-    #     if type(a).__name__=='ndarray':
-    #         iopt = 1
-    #         pass
-    #     else:
-    #         print('Error: Unexpected Matrix a type')
-    #         print('It should be numpy.ndarry!')
-    #         raise IOError
 
+    Arguments
+    ---------
+    phs
+    ths
+    tms
+    amats:  transforms from Sample Axes to Crystal Axes
+    echo
+    iopt
+    """
     if type(iopt)==type(None):
         print('** Error: iopt should be given to eulers.')
         raise IOError('** Error')
@@ -155,11 +155,6 @@ def eulers(phs=None, ths=None, tms=None, amats=None, echo=False,iopt=None):
         return [phs,ths,tms] #phi1, phi, phi2
 
     elif iopt==2:
-        # angles = [phs,ths,tms]
-        # if any(angles[i] == None for i in range(len(angles))):
-        #     print('Angles must be give if iopt==2')
-        #     raise IOError
-
         """ Convert the angle into Radian"""
         amats=np.zeros((len(phs),3,3))
 

@@ -1664,77 +1664,31 @@ class polefigure:
         ---------
         <transform>
            transformation matrix applied to the entire polycrystal aggregate.
+        The convention is, transform matrix transforms from 'old' sample axes to 'new' sample axes.
         """
-        for i in range(len(self.gr)):
-            phi1,phi,phi2,wgt = self.gr[i][:4]
-            ## amat = arg[-1]
-            amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
-            amat=amat.T ## sa<-ca
-            if (transf==np.identity).all():
-                pass
-            else:
-                amat=np.dot(transf,amat)
 
-            phi1,phi2,phi3 = euler(a=amat.T)
-            self.gr[i][:3]=phi1,phi2,phi3
+        amats=eulers(self.gr[:,0],self.gr[:,1],self.gr[:,2],iopt=2)
+        wgts=self.gr[:,3]
 
-    # def pf_axis(self, pole=[[1,0,0]], ifig=1):
-    #     """
-    #     Plot each pole without crystal symmetry
-    #     """
-    #     color = ['r','b','g','k','gray']
-    #     #marker =['o','x','+','d','.']
-    #     for ip in range(len(pole)):
-    #         cl = color[ip]
-    #         #mk = marker[i]
-    #         for i in range(len(self.gr)):
-    #             tm = self.dotplot(proj='pf', agrain=self.gr[i],
-    #                               npole=len(pole), ipole=ip+1,
-    #                               pole=pole[ip], ifig=ifig,
-    #                               cdim='None', cang=self.cang,
-    #                               csym=self.csym, mode=None,
-    #                               color=cl)
-
-    # def pf2xyw(self,pole=[1,0,0],csym='cubic',cdim=[1.,1.,1.],
-    #            cang=[90.,90.,90.],fn='dat.xyz'):
-    #     """
-    #     Read pole and write xyw to a file
-
-    #     Arguments
-    #     =========
-    #     pole
-    #     """
-    #     f = open(fn,'w')
-    #     xyzw= []
-    #     for i in range(len(self.gr)):
-    #         gr = self.gr[i][::]
-    #         phi1, phi, phi2 = gr[:3:]
-    #         phi1 = phi1 - 90.
-
-    #         npeq = __equiv__(
-    #             miller=pole, csym=csym, cdim=cdim, cang=cang)
-
-    #         xy, POLE = self.core(
-    #             pole=pole, proj='pf',csym=csym,
-    #             agrain=gr,isym=True,
-    #             cdim=cdim,cang=cang, equivp=npeq)
-
-    #         w = gr[-1]
-    #         # for j in xrange(len(xy)):
-    #         #     x,y = xy[j]
-    #         #     z = 0
-    #         #     f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
-    #         #     xyzw.append([x,y,z,w])
+        amats=np.einsum('ij,kjl->kil',transf,amats)
+        phi1,Phi,phi2=eulers(amats=amats,iopt=1)
+        self.gr[:,0]=phi1
+        self.gr[:,1]=Phi
+        self.gr[:,2]=phi2
 
 
-    #         for j in range(len(POLE)):
-    #             xyz=POLE[j]
-    #             x,y,z = xyz
-    #             f.write('%4.2f %4.2f %4.2f %11.4e\n'%(x,y,z,w))
-    #             xyzw.append([x,y,z,w])
+        # for i in range(len(self.gr)):
+        #     phi1,phi,phi2,wgt = self.gr[i][:4]
+        #     ## amat = arg[-1]
+        #     amat=euler(phi1,phi,phi2,a=None,echo=False) ## ca<-sa
+        #     amat=amat.T ## sa<-ca
+        #     if (transf==np.identity).all():
+        #         pass
+        #     else:
+        #         amat=np.dot(transf,amat)
 
-    #     f.close()
-    #     return np.array(xyzw).T
+        #     phi1,phi2,phi3 = euler(a=amat.T)
+        #     self.gr[i][:3]=phi1,phi2,phi3
 
     def ipf(self, pole=None,ifig=4,mode='dot',deco=True,**kwargs):
         """
@@ -2539,6 +2493,12 @@ g        <cdim>:  crystal dimension
                     # raw_input()
             #-------------------------------
         return np.array(XY),fig
+
+    def save(self,fnout):
+        with open(fnout,'w') as fo:
+            fo.write(f'dum\n dum\n dum\n{self.ngr} B\n')
+            for i, gr in enumerate(self.gr):
+                fo.write(f'{gr[0]:e} {gr[1]:e} {gr[2]:e} {gr[3]:e}\n')
 
 def cells_pf(iopt=0,proj='pf',pole=[1,0,0],dph=7.5,dth=7.5,csym=None,cang=[90.,90.,90.],
              cdim=[1.,1.,1.],grains=None,n_rim=2,transform=np.identity(3)):
