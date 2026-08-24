@@ -1668,9 +1668,10 @@ class polefigure:
         """
 
         amats=eulers(self.gr[:,0],self.gr[:,1],self.gr[:,2],iopt=2)
+        # amats transforms: ca <- sa
         wgts=self.gr[:,3]
 
-        amats=np.einsum('ij,kjl->kil',transf,amats)
+        amats=np.einsum('ijk,kl->ijl',amats,transf)
         phi1,Phi,phi2=eulers(amats=amats,iopt=1)
         self.gr[:,0]=phi1
         self.gr[:,1]=Phi
